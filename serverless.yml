@@ -1,0 +1,34 @@
+service: parser
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: ${opt:stage, 'dev'}
+  timeout: 20
+  region: eu-west-1
+  apiGateway:
+    shouldStartNameWithService: true
+  environment:
+    stage: ${self:provider.stage}
+
+functions:
+  parser:
+    handler: src/handler.parser
+    events:
+      - http:
+          path: /
+          method: get
+
+plugins:
+  - serverless-webpack
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    httpPort: 9000
+    lambdaPort: 3003
+    noPrependStageInUrl: true
+  webpack:
+    webpackConfig: 'webpack.config.js'
+    packager: 'npm'
+    includeModules: true

@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "experimentalDecorators": true,
+    "paths": {
+      "~/*": ["src/*"]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    ".webpack",
+    ".serverless",
+    "queries",
+    "test",
+    "apollo.config.js",
+    "db",
+    "prettier.config.js",
+    "sls.conf.js",
+    "webpack.config.js",
+    "scripts",
+    "commitlint.config.js"
+  ]
+}
