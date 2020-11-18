@@ -1,3 +1,5 @@
 type Episode {
+  id: ID
   title: String
+  url: String
 }

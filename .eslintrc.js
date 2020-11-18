@@ -18,6 +18,7 @@ module.exports = {
   },
   rules: {
     'no-restricted-globals': 'off',
+    'prefer-const': 'warn',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-explicit-any': 'off',
     '@typescript-eslint/ban-ts-comment': 'off',

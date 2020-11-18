@@ -1,4 +1,5 @@
 type Podcast {
   title: String
-  episodes: [Episode!]!
+  episodes(limit: Int): [Episode!]!
+  description: String
 }
