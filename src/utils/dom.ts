@@ -3,8 +3,10 @@ const select = (el: Element, query: string) => {
     .replace(/(?<=\w):(?=\w)/g, '\\:')
     .split('.')
   const node = el.querySelector(selector)
-  if (field === 'text') return node?.textContent
-  return node?.getAttribute(field)
+  return (field === 'text'
+    ? node?.textContent
+    : node?.getAttribute(field)
+  )?.replace(/(^[\s\n]+)|([\s\n]+$)/g, '')
 }
 
 export const query = (el: Element, ...queries: string[]) => {

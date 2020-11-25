@@ -1,0 +1,14 @@
+query ParseQuery($feed: String!) {
+  podcast(feed: $feed) {
+    title
+    description
+    subtitle
+    episodes {
+      id
+      url
+      published
+      title
+      shownotes
+    }
+  }
+}

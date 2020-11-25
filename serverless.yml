@@ -12,14 +12,21 @@ provider:
     stage: ${self:provider.stage}
 
 functions:
-  parser:
-    handler: src/handler.parser
+  graph:
+    handler: src/handler.graph
     events:
       - http:
           path: /
           method: get
       - http:
           path: /
+          method: post
+
+  parser:
+    handler: src/handler.parse
+    events:
+      - http:
+          path: /parse
           method: post
 
 plugins:

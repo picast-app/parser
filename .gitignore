@@ -5,3 +5,4 @@ schema/gen
 tmp
 .DS_Store
 feed_cache
+/report.*

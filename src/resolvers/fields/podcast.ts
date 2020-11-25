@@ -8,12 +8,17 @@ type Parent = {
 const $ = (selects: TemplateStringsArray) => ({ channel }: Parent) =>
   query(channel, ...selects[0].split('\n'))
 
-export const episodes = ({ episodes }: Parent, { limit }) =>
+const episodes = ({ episodes }: Parent, { limit }) =>
   episodes.slice(0, limit ?? Infinity)
 
-export const title = $`> title`
+// prettier-ignore
+export default {
+  title:        $`> title`,
 
-export const description = $`
-  > description
-  > itunes:summary
-`
+  description:  $`> description
+                  > itunes:summary`,
+
+  subtitle:     $`> subtitle`,
+
+  episodes,
+}
