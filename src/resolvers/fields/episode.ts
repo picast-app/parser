@@ -1,25 +1,13 @@
-import { query } from '~/utils/dom'
+import { buildSelector } from '~/utils/selector'
 
-const $ = (selects: TemplateStringsArray) => {
-  let mod = v => v
-  const exec = (episode: Element) =>
-    mod(query(episode, ...selects[0].split('\n')))
-  return Object.defineProperties(exec, {
-    time: {
-      get() {
-        mod = v => (new Date(v).getTime() / 1000) | 0
-        return this
-      },
-    },
-  })
-}
+const $ = buildSelector((episode: Element) => episode)
 
 // prettier-ignore
 export default {
   id:         $`> guid
                 > enclosure.url`,
             
-  title:      $`> title`,
+  title:      $`> title`.strip,
 
   url:        $`> enclosure.url`,
 

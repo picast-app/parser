@@ -1,24 +1,23 @@
-import { query } from '~/utils/dom'
+import { buildSelector } from '~/utils/selector'
 
 type Parent = {
   channel: Element
   episodes: Element[]
 }
 
-const $ = (selects: TemplateStringsArray) => ({ channel }: Parent) =>
-  query(channel, ...selects[0].split('\n'))
+const $ = buildSelector(({ channel }: Parent) => channel)
 
 const episodes = ({ episodes }: Parent, { limit }) =>
   episodes.slice(0, limit ?? Infinity)
 
 // prettier-ignore
 export default {
-  title:        $`> title`,
+  title:        $`> title`.strip,
 
   description:  $`> description
-                  > itunes:summary`,
+                  > itunes:summary`.strip,
 
-  subtitle:     $`> subtitle`,
+  subtitle:     $`> subtitle`.strip,
 
   episodes,
 }

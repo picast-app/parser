@@ -44,31 +44,37 @@ async function fetchFeed(feed: string) {
 }
 
 async function writePodcast(podcast: any) {
-  const items = [
-    {
-      pk: podcast.id,
-      sk: 'meta',
-      ...pickKeys(podcast, ['id', 'title', 'description', 'subtitle', 'feed']),
-    },
-  ]
-  for (const { id: guid, published = 0, ...rest } of podcast.episodes) {
-    const id = guidSha1(guid)
-    items.push({
-      pk: podcast.id,
-      sk: episodeSK(id, published),
-      id: vowelShift(parseInt(id, 16).toString(36)),
-      guid,
-      published,
-      ...rest,
-    })
+  const meta = {
+    id: podcast.id,
+    ...pickKeys(podcast, ['id', 'title', 'description', 'subtitle', 'feed']),
+    episodeCount: podcast.episodes?.length ?? 0,
   }
 
-  for (const batch of arr.batch(items, 25)) {
+  const episodes = podcast.episodes.map(
+    ({ id: guid, published = 0, ...rest }) => {
+      const id = guidSha1(guid)
+      return {
+        pId: podcast.id,
+        eId: episodeSK(id, published),
+        id: vowelShift(parseInt(id, 16).toString(36)),
+        guid,
+        published,
+        ...rest,
+      }
+    }
+  )
+
+  await ddb.put({ TableName: 'echo_podcasts', Item: meta }).promise()
+
+  const batches = arr.batch(episodes, 25)
+
+  for (const batch of batches) {
+    console.log(`batch ${batches.indexOf(batch) + 1} / ${batches.length}`)
     console.log(
       await ddb
         .batchWrite({
           RequestItems: {
-            echo_main: batch.map(Item => ({ PutRequest: { Item } })),
+            echo_episodes: batch.map(Item => ({ PutRequest: { Item } })),
           },
         })
         .promise()
