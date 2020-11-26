@@ -5,7 +5,7 @@ import wrap from './utils/handler'
 import PARSE_QUERY from './gql/parseQuery.gql'
 import { print } from 'graphql'
 import * as index from './utils/podcastindex'
-import { numberToId, episodeSK } from './utils/id'
+import { numberToId, episodeSK, vowelShift, guidSha1 } from './utils/id'
 import { ddb } from './utils/aws'
 import { pickKeys } from './utils/object'
 import * as arr from './utils/array'
@@ -24,6 +24,7 @@ export const parse = wrap<APIGatewayEvent>(async event => {
   const feedId = pi?.feed?.id
   if (!feedId) throw "couldn't locate feed"
   podcast.id = numberToId(feedId)
+  podcast.feed = feed
 
   await writePodcast(podcast)
 
@@ -47,16 +48,20 @@ async function writePodcast(podcast: any) {
     {
       pk: podcast.id,
       sk: 'meta',
-      ...pickKeys(podcast, ['id', 'title', 'description', 'subtitle']),
+      ...pickKeys(podcast, ['id', 'title', 'description', 'subtitle', 'feed']),
     },
   ]
-  for (const { id, published = 0, ...rest } of podcast.episodes)
+  for (const { id: guid, published = 0, ...rest } of podcast.episodes) {
+    const id = guidSha1(guid)
     items.push({
       pk: podcast.id,
       sk: episodeSK(id, published),
+      id: vowelShift(parseInt(id, 16).toString(36)),
+      guid,
       published,
       ...rest,
     })
+  }
 
   for (const batch of arr.batch(items, 25)) {
     console.log(
