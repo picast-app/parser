@@ -24,6 +24,10 @@ module.exports = {
   module: {
     rules: [
       {
+        include: path.resolve(__dirname, 'node_modules/canvas'),
+        use: 'null-loader',
+      },
+      {
         test: /\.ts$/,
         exclude: /node_modules/,
         use: [

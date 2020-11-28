@@ -3,6 +3,7 @@ query ParseQuery($feed: String!) {
     title
     description
     subtitle
+    artwork
     episodes {
       id
       url

@@ -3,13 +3,22 @@ service: parser
 provider:
   name: aws
   runtime: nodejs12.x
-  stage: ${opt:stage, 'dev'}
+  stage: ${opt:stage, 'prod'}
   timeout: 20
   region: eu-west-1
   apiGateway:
     shouldStartNameWithService: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:*
+      Resource:
+        - ${ssm:/echo/ddb/podcasts/arn}
+        - ${ssm:/echo/ddb/episodes/arn}
   environment:
     stage: ${self:provider.stage}
+    PI_API_KEY: ${ssm:/echo/pi/key}
+    PI_API_SECRET: ${ssm:/echo/pi/secret~true}
 
 functions:
   graph:
@@ -28,6 +37,9 @@ functions:
       - http:
           path: /parse
           method: post
+      - sns:
+          arn: ${ssm:/echo/sns/parser/arn}
+          maximumRetryAttempts: 3
 
 plugins:
   - serverless-webpack

@@ -19,5 +19,8 @@ export default {
 
   subtitle:     $`> subtitle`.strip,
 
+  artwork:      $`> image url
+                    itunes:image.href`,
+
   episodes,
 }

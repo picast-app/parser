@@ -1,6 +1,6 @@
 import type * as AWS from 'aws-lambda'
 
-type HandlerType = AWS.APIGatewayEvent
+type HandlerType = AWS.APIGatewayEvent | AWS.SNSEvent
 
 type Handler<T extends HandlerType> = AWS.Handler<T>
 

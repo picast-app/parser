@@ -1,4 +1,4 @@
-import { APIGatewayEvent } from 'aws-lambda'
+import { APIGatewayEvent, SNSEvent } from 'aws-lambda'
 import 'source-map-support/register'
 import { handler, server } from './apollo'
 import wrap from './utils/handler'
@@ -12,9 +12,25 @@ import * as arr from './utils/array'
 
 export const graph = handler
 
-export const parse = wrap<APIGatewayEvent>(async event => {
-  const { feed } = JSON.parse(event.body) ?? {}
-  if (!feed) throw 'missing feed'
+export const parse = wrap<APIGatewayEvent | SNSEvent>(async event => {
+  const feeds: string[] = []
+
+  if ('Records' in event) {
+    feeds.push(...event.Records.map(({ Sns }) => JSON.parse(Sns.Message).feed))
+  } else {
+    const { feed } = JSON.parse(event.body) ?? {}
+    if (!feed) throw 'missing feed'
+    feeds.push(feed)
+  }
+
+  const [res] = await Promise.all(feeds.map(parseFeed))
+
+  if ('Records' in event) return
+  return res
+})
+
+async function parseFeed(feed: string) {
+  console.log('parse', feed)
 
   const [podcast, pi] = await Promise.all([
     fetchFeed(feed),
@@ -33,7 +49,7 @@ export const parse = wrap<APIGatewayEvent>(async event => {
     title: podcast.title,
     episodes: podcast.episodes.length,
   }
-})
+}
 
 async function fetchFeed(feed: string) {
   const { data } = await server.executeOperation({
@@ -46,7 +62,14 @@ async function fetchFeed(feed: string) {
 async function writePodcast(podcast: any) {
   const meta = {
     id: podcast.id,
-    ...pickKeys(podcast, ['id', 'title', 'description', 'subtitle', 'feed']),
+    ...pickKeys(podcast, [
+      'id',
+      'title',
+      'description',
+      'subtitle',
+      'feed',
+      'artwork',
+    ]),
     episodeCount: podcast.episodes?.length ?? 0,
   }
 
