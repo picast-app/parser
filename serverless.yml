@@ -39,7 +39,6 @@ functions:
           method: post
       - sns:
           arn: ${ssm:/echo/sns/parser/arn}
-          maximumRetryAttempts: 3
 
 plugins:
   - serverless-webpack
