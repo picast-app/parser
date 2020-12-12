@@ -15,10 +15,16 @@ provider:
       Resource:
         - ${ssm:/echo/ddb/podcasts/arn}
         - ${ssm:/echo/ddb/episodes/arn}
+    - Effect: 'Allow'
+      Action:
+        - 'sns:Publish'
+      Resource:
+        - ${ssm:/echo/sns/resize/arn}
   environment:
     stage: ${self:provider.stage}
     PI_API_KEY: ${ssm:/echo/pi/key}
     PI_API_SECRET: ${ssm:/echo/pi/secret~true}
+    RESIZE_SNS: ${ssm:/echo/sns/resize/arn}
 
 functions:
   graph:

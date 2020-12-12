@@ -10,3 +10,5 @@ export const ddb = new AWS.DynamoDB.DocumentClient(
       }
     : undefined
 )
+
+export const sns = new AWS.SNS()

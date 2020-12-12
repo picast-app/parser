@@ -6,7 +6,7 @@ import PARSE_QUERY from './gql/parseQuery.gql'
 import { print } from 'graphql'
 import * as index from './utils/podcastindex'
 import { numberToId, episodeSK, vowelShift, guidSha1 } from './utils/id'
-import { ddb } from './utils/aws'
+import { ddb, sns } from './utils/aws'
 import { pickKeys } from './utils/object'
 import * as arr from './utils/array'
 
@@ -88,7 +88,24 @@ async function writePodcast(podcast: any) {
     }
   )
 
-  await ddb.put({ TableName: 'echo_podcasts', Item: meta }).promise()
+  const { Attributes } = await ddb
+    .put({
+      TableName: 'echo_podcasts',
+      Item: meta,
+      ReturnValues: 'ALL_OLD',
+    })
+    .promise()
+
+  if (!process.env.IS_OFFLINE && Attributes?.artwork !== meta.artwork)
+    await sns
+      .publish({
+        Message: JSON.stringify({
+          podcast: meta.id,
+          url: meta.artwork,
+        }),
+        TopicArn: process.env.RESIZE_SNS,
+      })
+      .promise()
 
   const batches = arr.batch(episodes, 25)
 
