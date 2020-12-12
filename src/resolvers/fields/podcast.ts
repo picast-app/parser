@@ -14,13 +14,15 @@ const episodes = ({ episodes }: Parent, { limit }) =>
 export default {
   title:        $`> title`.strip,
 
+  author:       $`> itunes:author`.strip,
+
   description:  $`> description
                   > itunes:summary`.strip,
 
   subtitle:     $`> subtitle`.strip,
 
   artwork:      $`> image url
-                    itunes:image.href`,
+                  > itunes:image.href`,
 
   episodes,
 }

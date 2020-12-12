@@ -65,6 +65,7 @@ async function writePodcast(podcast: any) {
     ...pickKeys(podcast, [
       'id',
       'title',
+      'author',
       'description',
       'subtitle',
       'feed',

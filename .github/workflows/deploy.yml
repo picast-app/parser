@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      # - staging
 
 jobs:
   build-and-deploy:
@@ -22,9 +21,4 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          if [ ${GITHUB_REF##*/} = "master" ]; then
-            npx sls deploy --stage prod
-          else
-            npx sls deploy --stage dev
-          fi
+        run: npx sls deploy
