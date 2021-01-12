@@ -9,6 +9,8 @@ import { numberToId, episodeSK, vowelShift, guidSha1 } from './utils/id'
 import { ddb, sns } from './utils/aws'
 import { pickKeys } from './utils/object'
 import * as arr from './utils/array'
+import fetchArt from './utils/fetchArt'
+import * as db from './utils/db'
 
 export const graph = handler
 
@@ -59,19 +61,20 @@ async function fetchFeed(feed: string) {
   return data.podcast
 }
 
-async function writePodcast(podcast: any) {
-  const meta = {
-    id: podcast.id,
-    ...pickKeys(podcast, [
+type Meta = Parameters<typeof db.podcasts.put>[0]
+
+async function writePodcast(podcast: Meta & any) {
+  const meta: Meta = {
+    ...pickKeys(
+      podcast,
       'id',
       'title',
       'author',
       'description',
       'subtitle',
       'feed',
-      'artwork',
-    ]),
-    episodeCount: podcast.episodes?.length ?? 0,
+      'artwork'
+    ),
   }
 
   const episodes = podcast.episodes.map(
@@ -87,6 +90,11 @@ async function writePodcast(podcast: any) {
       }
     }
   )
+
+  if (process.env.IS_OFFLINE) {
+    const covers = await fetchArt(podcast.id)
+    if (covers?.length) meta.art = covers
+  }
 
   const { Attributes } = await ddb
     .put({

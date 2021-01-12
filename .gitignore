@@ -8,3 +8,4 @@ tmp
 feed_cache
 /report.*
 *credentials*
+.npmrc

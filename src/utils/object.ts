@@ -18,5 +18,5 @@ type Foo<T extends any[]> = T[number]
 
 export const pickKeys = <T extends obj, K extends (keyof T)[]>(
   o: T,
-  keys: K
+  ...keys: K
 ): Pick<T, Foo<K>> => filter(o, k => keys.includes(k)) as any
