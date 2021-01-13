@@ -11,6 +11,7 @@ import { pickKeys } from './utils/object'
 import * as arr from './utils/array'
 import fetchArt from './utils/fetchArt'
 import * as db from './utils/db'
+import crc32 from 'crc/crc32'
 
 export const graph = handler
 
@@ -61,7 +62,7 @@ async function fetchFeed(feed: string) {
   return data.podcast
 }
 
-type Meta = Parameters<typeof db.podcasts.put>[0]
+type Meta = Parameters<typeof db.podcasts.put>[0] & Record<string, any>
 
 async function writePodcast(podcast: Meta & any) {
   const meta: Meta = {
@@ -76,6 +77,8 @@ async function writePodcast(podcast: Meta & any) {
       'artwork'
     ),
   }
+
+  meta.check = crc32(JSON.stringify(meta)).toString(36)
 
   const episodes = podcast.episodes.map(
     ({ id: guid, published = 0, ...rest }) => {
