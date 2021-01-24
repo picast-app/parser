@@ -78,15 +78,15 @@ async function writePodcast(podcast: Meta & any) {
     ),
   }
 
+  meta.episodeCount = podcast.episodes.length
   meta.check = crc32(JSON.stringify(meta)).toString(36)
 
   const episodes = podcast.episodes.map(
     ({ id: guid, published = 0, ...rest }) => {
-      const id = guidSha1(guid)
+      const id = vowelShift(parseInt(guidSha1(guid), 16).toString(36))
       return {
         pId: podcast.id,
         eId: episodeSK(id, published),
-        id: vowelShift(parseInt(id, 16).toString(36)),
         guid,
         published,
         ...rest,

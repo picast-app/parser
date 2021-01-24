@@ -26,4 +26,4 @@ export const guidSha1 = (id: string, length = 6) => {
 }
 
 export const episodeSK = (id: string, published = 0) =>
-  `${('0'.repeat(5) + published.toString(36)).slice(-6)}#${id}`
+  ('0'.repeat(5) + published.toString(36)).slice(-6) + id
