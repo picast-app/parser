@@ -74,7 +74,8 @@ async function writePodcast(podcast: Meta & any) {
       'description',
       'subtitle',
       'feed',
-      'artwork'
+      'artwork',
+      'covers'
     ),
   }
 
@@ -95,8 +96,7 @@ async function writePodcast(podcast: Meta & any) {
   )
 
   if (process.env.IS_OFFLINE) {
-    const covers = await fetchArt(podcast.id)
-    if (covers?.length) meta.art = covers
+    meta.covers = await fetchArt(podcast.id)
   }
 
   const { Attributes } = await ddb
@@ -122,14 +122,17 @@ async function writePodcast(podcast: Meta & any) {
 
   for (const batch of batches) {
     console.log(`batch ${batches.indexOf(batch) + 1} / ${batches.length}`)
-    console.log(
-      await ddb
+    let items = batch
+    while (items?.length) {
+      const { UnprocessedItems } = await ddb
         .batchWrite({
           RequestItems: {
             echo_episodes: batch.map(Item => ({ PutRequest: { Item } })),
           },
         })
         .promise()
-    )
+      items = UnprocessedItems.echo_episodes
+      console.log(`${items?.length ?? 0} unprocessed`)
+    }
   }
 }
