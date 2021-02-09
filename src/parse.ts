@@ -15,7 +15,7 @@ export default async function ({ feed, id }: { feed: string; id: string }) {
 
   const podProm = db.parser.get(`${id}#parser`)
 
-  feed ??= (await podProm).feed
+  feed ??= ((await podProm) ?? (await db.podcasts.get(id)))?.feed
   if (!feed) throw Error(`can't locate feed for ${id}`)
 
   const [podcast, pi] = await Promise.all([
