@@ -13,6 +13,7 @@ export const query = async (
       .createHash('sha1')
       .update(process.env.PI_API_KEY + process.env.PI_API_SECRET + time, 'utf8')
       .digest('hex'),
+    'User-Agent': 'parser.picast.app',
   }
 
   const { data } = await axios.get(

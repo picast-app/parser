@@ -1,6 +1,6 @@
 import init from '@picast-app/db'
 
-export const { podcasts, episodes } = init(
+export const { podcasts, episodes, parser } = init(
   process.env.IS_OFFLINE
     ? {
         region: 'localhost',

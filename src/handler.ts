@@ -2,19 +2,17 @@ import { APIGatewayEvent, SNSEvent } from 'aws-lambda'
 import 'source-map-support/register'
 import { handler } from './apollo'
 import wrap from './utils/handler'
-import { parseFeed } from './parse'
+import parseFeed from './parse'
 
 export const graph = handler
 
 export const parse = wrap<APIGatewayEvent | SNSEvent>(async event => {
-  const feeds: string[] = []
+  const feeds: { feed: string; id?: string }[] = []
 
   if ('Records' in event) {
-    feeds.push(...event.Records.map(({ Sns }) => JSON.parse(Sns.Message).feed))
+    feeds.push(...event.Records.map(({ Sns }) => JSON.parse(Sns.Message)))
   } else {
-    const { feed } = JSON.parse(event.body) ?? {}
-    if (!feed) throw 'missing feed'
-    feeds.push(feed)
+    feeds.push(JSON.parse(event.body) ?? {})
   }
 
   const [res] = await Promise.all(feeds.map(parseFeed))

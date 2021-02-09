@@ -10,20 +10,29 @@ import fetchArt from './utils/fetchArt'
 import * as db from './utils/db'
 import crc32 from 'crc/crc32'
 
-export async function parseFeed(feed: string) {
-  console.log('parse', feed)
+export default async function ({ feed, id }: { feed: string; id: string }) {
+  if (!id && !feed) throw Error('must provide feed or id')
+
+  const podProm = db.parser.get(`${id}#parser`)
+
+  feed ??= (await podProm).feed
+  if (!feed) throw Error(`can't locate feed for ${id}`)
 
   const [podcast, pi] = await Promise.all([
-    fetchFeed(feed),
-    index.query('podcasts/byfeedurl', { url: feed }),
+    parseFeed(feed),
+    !id && index.query('podcasts/byfeedurl', { url: feed }),
   ])
 
-  const feedId = pi?.feed?.id
+  if (!podcast) throw Error('invalid feed')
+
+  const feedId = id ?? pi?.feed?.id
   if (!feedId) throw "couldn't locate feed"
   podcast.id = numberToId(feedId)
   podcast.feed = feed
 
-  await writePodcast(podcast)
+  const { crc, episodes } = (await podProm) ?? {}
+
+  if (crc !== podcast.crc) await writePodcast(podcast, episodes)
 
   return {
     id: podcast.id,
@@ -32,7 +41,7 @@ export async function parseFeed(feed: string) {
   }
 }
 
-async function fetchFeed(feed: string) {
+async function parseFeed(feed: string) {
   const { data } = await server.executeOperation({
     query: print(PARSE_QUERY),
     variables: { feed },
@@ -42,7 +51,7 @@ async function fetchFeed(feed: string) {
 
 type Meta = Parameters<typeof db.podcasts.put>[0] & Record<string, any>
 
-async function writePodcast(podcast: any) {
+async function writePodcast(podcast: any, known: readonly string[] = []) {
   const meta: Meta = {
     ...pickKeys(
       podcast,
@@ -60,18 +69,18 @@ async function writePodcast(podcast: any) {
   meta.episodeCount = podcast.episodes.length
   meta.check = crc32(JSON.stringify(meta)).toString(36)
 
-  const episodes = podcast.episodes.map(
-    ({ id: guid, published = 0, ...rest }) => {
-      const id = vowelShift(parseInt(guidSha1(guid), 16).toString(36))
-      return {
-        pId: podcast.id,
-        eId: episodeSK(id, published),
-        guid,
-        published,
-        ...rest,
-      }
-    }
-  )
+  const episodes = podcast.episodes
+    .map(({ id: guid, published = 0, ...rest }) => ({
+      pId: podcast.id,
+      eId: episodeSK(
+        vowelShift(parseInt(guidSha1(guid), 16).toString(36)),
+        published
+      ),
+      guid,
+      published,
+      ...rest,
+    }))
+    .filter(({ eId }) => !known.includes(eId))
 
   if (process.env.IS_OFFLINE) meta.covers = await fetchArt(podcast.id)
 
@@ -80,7 +89,20 @@ async function writePodcast(podcast: any) {
   if (!process.env.IS_OFFLINE && old?.artwork !== meta.artwork)
     processPhotos(meta.id, meta.artwork)
 
-  await db.episodes.batchPut(...episodes)
+  const removed = known.filter(id => !episodes.find(({ eId }) => eId === id))
+
+  await Promise.all([
+    db.episodes.batchPut(...episodes),
+    removed.length > 0 &&
+      db.episodes.batchDelete(...removed.map(eId => [podcast.id, eId] as any)),
+    db.parser.put({
+      id: `${meta.id}#parser`,
+      feed: meta.feed,
+      crc: podcast.crc,
+      lastParsed: Date.now(),
+      episodes: episodes.map(({ eId }) => eId),
+    }),
+  ])
 }
 
 async function processPhotos(podcast: string, url: string) {
