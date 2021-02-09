@@ -49,20 +49,19 @@ async function parseFeed(feed: string) {
   return data.podcast
 }
 
-type Meta = Parameters<typeof db.podcasts.put>[0] & Record<string, any>
+type Meta = Omit<Parameters<typeof db.podcasts.put>[0], 'id'> &
+  Record<string, any>
 
 async function writePodcast(podcast: any, known: readonly string[] = []) {
   const meta: Meta = {
     ...pickKeys(
       podcast,
-      'id',
       'title',
       'author',
       'description',
       'subtitle',
       'feed',
-      'artwork',
-      'covers'
+      'artwork'
     ),
   }
 
@@ -82,12 +81,15 @@ async function writePodcast(podcast: any, known: readonly string[] = []) {
     }))
     .filter(({ eId }) => !known.includes(eId))
 
-  if (process.env.IS_OFFLINE) meta.covers = await fetchArt(podcast.id)
+  if (process.env.IS_OFFLINE) {
+    const covers = await fetchArt(podcast.id)
+    if (covers.length) meta.covers = covers
+  }
 
-  const old = await db.podcasts.put(meta).returning('OLD')
+  const old = await db.podcasts.update(podcast.id, meta).returning('OLD')
 
   if (!process.env.IS_OFFLINE && old?.artwork !== meta.artwork)
-    processPhotos(meta.id, meta.artwork)
+    processPhotos(podcast.id, meta.artwork)
 
   const removed = known.filter(id => !episodes.find(({ eId }) => eId === id))
 
@@ -96,7 +98,7 @@ async function writePodcast(podcast: any, known: readonly string[] = []) {
     removed.length > 0 &&
       db.episodes.batchDelete(...removed.map(eId => [podcast.id, eId] as any)),
     db.parser.put({
-      id: `${meta.id}#parser`,
+      id: `${podcast.id}#parser`,
       feed: meta.feed,
       crc: podcast.crc,
       lastParsed: Date.now(),
