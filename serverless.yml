@@ -25,6 +25,7 @@ provider:
     PI_API_KEY: ${ssm:/echo/pi/key}
     PI_API_SECRET: ${ssm:/echo/pi/secret~true}
     RESIZE_SNS: ${ssm:/echo/sns/resize/arn}
+    PARSER_AUTH: ${ssm:/parser/auth~true}
 
 functions:
   graph:

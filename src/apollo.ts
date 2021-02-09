@@ -27,4 +27,11 @@ export const server = new ApolloServer({
   engine: false,
 })
 
-export const handler = server.createHandler()
+const _handler = server.createHandler()
+
+export const handler = async (event, ...args) => {
+  if (event.headers.Auth !== process.env.PARSER_AUTH && !process.env.IS_OFFLINE)
+    return { statusCode: 401 }
+  // @ts-ignore
+  return await _handler(event, ...args)
+}

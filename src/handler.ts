@@ -12,6 +12,10 @@ export const parse = wrap<APIGatewayEvent | SNSEvent>(async event => {
   if ('Records' in event) {
     feeds.push(...event.Records.map(({ Sns }) => JSON.parse(Sns.Message)))
   } else {
+    if (event.headers.Auth !== process.env.PARSER_AUTH)
+      return {
+        statusCode: 401,
+      }
     feeds.push(JSON.parse(event.body) ?? {})
   }
 
