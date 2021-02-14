@@ -18,6 +18,8 @@ export default async function ({ feed, id }: { feed: string; id: string }) {
   feed ??= ((await podProm) ?? (await db.podcasts.get(id)))?.feed
   if (!feed) throw Error(`can't locate feed for ${id}`)
 
+  console.log(`parse ${feed}`)
+
   const [podcast, pi] = await Promise.all([
     parseFeed(feed),
     !id && index.query('podcasts/byfeedurl', { url: feed }),
@@ -87,6 +89,9 @@ async function writePodcast(podcast: any, known: readonly string[] = []) {
   }
 
   const old = await db.podcasts.update(podcast.id, meta).returning('OLD')
+  episodes.forEach(episode => {
+    episode.firstPass = old === undefined
+  })
 
   if (!process.env.IS_OFFLINE && old?.artwork !== meta.artwork)
     processPhotos(podcast.id, meta.artwork)

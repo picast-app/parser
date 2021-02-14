@@ -3,6 +3,7 @@ import 'source-map-support/register'
 import { handler } from './apollo'
 import wrap from './utils/handler'
 import parseFeed from './parse'
+import { Headers } from '~/utils/http'
 
 export const graph = handler
 
@@ -12,7 +13,7 @@ export const parse = wrap<APIGatewayEvent | SNSEvent>(async event => {
   if ('Records' in event) {
     feeds.push(...event.Records.map(({ Sns }) => JSON.parse(Sns.Message)))
   } else {
-    if (event.headers.Auth !== process.env.PARSER_AUTH)
+    if (new Headers(event.headers).get('auth') !== process.env.PARSER_AUTH)
       return {
         statusCode: 401,
       }
