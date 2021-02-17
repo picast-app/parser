@@ -98,6 +98,9 @@ async function writePodcast(podcast: any, known: readonly string[] = []) {
 
   const removed = known.filter(id => !episodes.find(({ eId }) => eId === id))
 
+  const episodeIds = [...known, ...episodes.map(({ eId }) => eId)].sort()
+  const episodeCheck = crc32(episodeIds.join('')).toString(36)
+
   await Promise.all([
     db.episodes.batchPut(...episodes),
     removed.length > 0 &&
@@ -107,7 +110,8 @@ async function writePodcast(podcast: any, known: readonly string[] = []) {
       feed: meta.feed,
       crc: podcast.crc,
       lastParsed: Date.now(),
-      episodes: [...known, ...episodes.map(({ eId }) => eId)],
+      episodes: episodeIds,
+      episodeCheck,
     }),
   ])
 }
