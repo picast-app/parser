@@ -107,7 +107,7 @@ async function writePodcast(podcast: any, known: readonly string[] = []) {
       feed: meta.feed,
       crc: podcast.crc,
       lastParsed: Date.now(),
-      episodes: episodes.map(({ eId }) => eId),
+      episodes: [...known, ...episodes.map(({ eId }) => eId)],
     }),
   ])
 }
