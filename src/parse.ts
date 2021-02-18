@@ -70,8 +70,8 @@ async function writePodcast(podcast: any, known: readonly string[] = []) {
   meta.episodeCount = podcast.episodes.length
   meta.check = crc32(JSON.stringify(meta)).toString(36)
 
-  const episodes = podcast.episodes
-    .map(({ id: guid, published = 0, ...rest }) => ({
+  let episodes = podcast.episodes.map(
+    ({ id: guid, published = 0, ...rest }) => ({
       pId: podcast.id,
       eId: episodeSK(
         vowelShift(parseInt(guidSha1(guid), 16).toString(36)),
@@ -80,8 +80,8 @@ async function writePodcast(podcast: any, known: readonly string[] = []) {
       guid,
       published,
       ...rest,
-    }))
-    .filter(({ eId }) => !known.includes(eId))
+    })
+  )
 
   if (process.env.IS_OFFLINE) {
     const covers = await fetchArt(podcast.id)
@@ -97,6 +97,7 @@ async function writePodcast(podcast: any, known: readonly string[] = []) {
     processPhotos(podcast.id, meta.artwork)
 
   const removed = known.filter(id => !episodes.find(({ eId }) => eId === id))
+  episodes = episodes.filter(({ eId }) => !known.includes(eId))
 
   const episodeIds = [...known, ...episodes.map(({ eId }) => eId)].sort()
   const episodeCheck = crc32(episodeIds.join('')).toString(36)
