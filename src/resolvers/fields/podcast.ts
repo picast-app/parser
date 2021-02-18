@@ -1,4 +1,5 @@
 import { buildSelector } from '~/utils/selector'
+import * as pi from '~/utils/podcastindex'
 
 type Parent = {
   channel: Element
@@ -9,6 +10,9 @@ const $ = buildSelector(({ channel }: Parent) => channel)
 
 const episodes = ({ episodes }: Parent, { limit }) =>
   episodes.slice(0, limit ?? Infinity)
+
+const index = async ({ feed }) =>
+  JSON.stringify(await pi.query('podcasts/byfeedurl', { url: feed }))
 
 // prettier-ignore
 export default {
@@ -25,4 +29,5 @@ export default {
                   > itunes:image.href`,
 
   episodes,
+  index
 }

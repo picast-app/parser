@@ -27,5 +27,5 @@ export const podcast = async (_, { feed }) => {
   const episodes = Array.from(channel.querySelectorAll(':scope > item'))
   episodes.forEach(node => node.remove())
 
-  return { channel, episodes, crc: crc32(data).toString(16) }
+  return { channel, episodes, feed, crc: crc32(data).toString(16) }
 }

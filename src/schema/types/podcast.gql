@@ -6,4 +6,5 @@ type Podcast {
   artwork: String
   episodes(limit: Int): [Episode!]!
   crc: ID
+  index: String
 }
