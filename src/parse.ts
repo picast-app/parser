@@ -35,6 +35,7 @@ export default async function ({ feed, id }: { feed: string; id: string }) {
   const { crc, episodes } = (await podProm) ?? {}
 
   if (crc !== podcast.crc) await writePodcast(podcast, episodes)
+  else console.log('skip write (crc matches)')
 
   return {
     id: podcast.id,
@@ -98,6 +99,8 @@ async function writePodcast(podcast: any, known: readonly string[] = []) {
 
   const removed = known.filter(id => !episodes.find(({ eId }) => eId === id))
   episodes = episodes.filter(({ eId }) => !known.includes(eId))
+
+  console.log(`add ${episodes.length} episodes, remove ${removed.length}`)
 
   const episodeIds = [...known, ...episodes.map(({ eId }) => eId)].sort()
   const episodeCheck = crc32(episodeIds.join('')).toString(36)

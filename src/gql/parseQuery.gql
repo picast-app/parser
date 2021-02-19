@@ -12,6 +12,7 @@ query ParseQuery($feed: String!) {
       published
       title
       shownotes
+      duration
     }
   }
 }

@@ -16,5 +16,7 @@ export default {
                 > fullitem
                 > atom10:content`,
 
-  published:  $`> pubDate`.time
+  published:  $`> pubDate`.time,
+
+  duration:   $`> itunes:duration`.duration
 }

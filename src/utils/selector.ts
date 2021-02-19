@@ -20,5 +20,21 @@ export const buildSelector = <T = Element>(
         return this
       },
     },
+    duration: {
+      get() {
+        mod = v => {
+          try {
+            const [s = 0, m = 0, h = 0, d = 0] = v
+              .split(':')
+              .reverse()
+              .map(v => parseInt(v))
+            return Math.round(s + m * 60 + h * 60 ** 2 + d * 60 ** 2 * 24)
+          } catch (e) {
+            return 0
+          }
+        }
+        return this
+      },
+    },
   })
 }
