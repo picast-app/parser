@@ -8,7 +8,8 @@ import { sns } from './utils/aws'
 import { pickKeys } from './utils/object'
 import fetchArt from './utils/fetchArt'
 import * as db from './utils/db'
-import crc32 from 'crc/crc32'
+import { episodes as eps } from '@picast-app/db'
+import { crc32 } from 'crc'
 import { DBRecord } from 'ddbjs'
 
 export default async function ({ feed, id }: { feed: string; id: string }) {
@@ -79,7 +80,7 @@ async function writePodcast(podcast: any, known: readonly string[] = []) {
     })
   )
   const episodeIds = episodes.map(({ eId }) => eId)
-  const episodeCheck = crc32(episodeIds.join('')).toString(36)
+  const episodeCheck = eps.hashIds(episodeIds)
 
   meta.episodeCount = podcast.episodes.length
   meta.check = crc32(JSON.stringify(meta)).toString(36)
