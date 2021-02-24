@@ -9,6 +9,7 @@ import { pickKeys } from './utils/object'
 import fetchArt from './utils/fetchArt'
 import * as db from './utils/db'
 import crc32 from 'crc/crc32'
+import { DBRecord } from 'ddbjs'
 
 export default async function ({ feed, id }: { feed: string; id: string }) {
   if (!id && !feed) throw Error('must provide feed or id')
@@ -52,11 +53,8 @@ async function parseFeed(feed: string) {
   return data.podcast
 }
 
-type Meta = Omit<Parameters<typeof db.podcasts.put>[0], 'id'> &
-  Record<string, any>
-
 async function writePodcast(podcast: any, known: readonly string[] = []) {
-  const meta: Meta = {
+  const meta: Omit<DBRecord<typeof db['podcasts']>, 'id'> = {
     ...pickKeys(
       podcast,
       'title',
@@ -67,9 +65,6 @@ async function writePodcast(podcast: any, known: readonly string[] = []) {
       'artwork'
     ),
   }
-
-  meta.episodeCount = podcast.episodes.length
-  meta.check = crc32(JSON.stringify(meta)).toString(36)
 
   let episodes = podcast.episodes.map(
     ({ id: guid, published = 0, ...rest }) => ({
@@ -83,6 +78,12 @@ async function writePodcast(podcast: any, known: readonly string[] = []) {
       ...rest,
     })
   )
+  const episodeIds = episodes.map(({ eId }) => eId)
+  const episodeCheck = crc32(episodeIds.join('')).toString(36)
+
+  meta.episodeCount = podcast.episodes.length
+  meta.check = crc32(JSON.stringify(meta)).toString(36)
+  meta.episodeCheck = episodeCheck
 
   if (process.env.IS_OFFLINE) {
     const covers = await fetchArt(podcast.id)
@@ -100,11 +101,6 @@ async function writePodcast(podcast: any, known: readonly string[] = []) {
   const removed = known.filter(id => !episodes.find(({ eId }) => eId === id))
   episodes = episodes.filter(({ eId }) => !known.includes(eId))
 
-  console.log(`add ${episodes.length} episodes, remove ${removed.length}`)
-
-  const episodeIds = [...known, ...episodes.map(({ eId }) => eId)].sort()
-  const episodeCheck = crc32(episodeIds.join('')).toString(36)
-
   await Promise.all([
     db.episodes.batchPut(...episodes),
     removed.length > 0 &&
@@ -116,6 +112,7 @@ async function writePodcast(podcast: any, known: readonly string[] = []) {
       lastParsed: Date.now(),
       episodes: episodeIds,
       episodeCheck,
+      metaCheck: meta.check,
     }),
   ])
 }
