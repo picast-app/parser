@@ -13,7 +13,10 @@ export const podcast = async (_, { feed }) => {
   if (!cache || !fs.existsSync(cachePath)) {
     const res = await axios.get(feed)
     data = res.data
-    if (cache) fs.writeFileSync(cachePath, data)
+    if (cache) {
+      if (!fs.existsSync('feed_cache')) fs.mkdirSync('feed_cache')
+      fs.writeFileSync(cachePath, data)
+    }
   } else {
     data = fs.readFileSync(cachePath, 'utf-8')
   }

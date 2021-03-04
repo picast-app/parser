@@ -28,6 +28,8 @@ export default {
   artwork:      $`> image url
                   > itunes:image.href`,
 
+  generator:    $`> generator`,
+
   episodes,
   index
 }

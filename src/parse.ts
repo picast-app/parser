@@ -36,7 +36,32 @@ export default async function ({ feed, id }: { feed: string; id: string }) {
 
   const { crc, episodes } = (await podProm) ?? {}
 
-  if (crc !== podcast.crc) await writePodcast(podcast, episodes)
+  let paginated = false
+
+  if (podcast.generator?.includes('squarespace.com')) {
+    const maxPage = 5
+    const url = new URL(feed)
+
+    for (let page = 2; page <= maxPage; page++)
+      try {
+        url.searchParams.set('page', page.toString())
+
+        const parsed = await parseFeed(url.toString())
+        const newEpisodes = parsed.episodes.filter(
+          ({ id }) => !podcast.episodes.find(v => v.id === id)
+        )
+        console.log(`${newEpisodes.length} new episodes on page ${2}`)
+        if (newEpisodes.length === 0) break
+
+        podcast.episodes.push(...newEpisodes)
+        paginated = true
+      } catch (e) {
+        console.error('failed to parse page ' + page, e)
+        break
+      }
+  }
+
+  if (crc !== podcast.crc || paginated) await writePodcast(podcast, episodes)
   else console.log('skip write (crc matches)')
 
   return {
