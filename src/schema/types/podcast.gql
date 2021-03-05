@@ -8,4 +8,8 @@ type Podcast {
   crc: ID
   index: String
   generator: ID
+  nextPage: String
+  lastPage: String
+  hub: String
+  self: String
 }

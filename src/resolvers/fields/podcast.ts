@@ -30,6 +30,12 @@ export default {
 
   generator:    $`> generator`,
 
+  nextPage:     $`> atom:link[rel='next'].href`,
+  lastPage:     $`> atom:link[rel='last'].href`,
+
+  hub:          $`> atom:link[rel='hub'].href`,
+  self:          $`> atom:link[rel='self'].href`,
+
   episodes,
   index
 }

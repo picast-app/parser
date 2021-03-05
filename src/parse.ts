@@ -36,29 +36,46 @@ export default async function ({ feed, id }: { feed: string; id: string }) {
 
   const { crc, episodes } = (await podProm) ?? {}
 
+  async function parsePage(url: string): Promise<string | undefined> {
+    const page = await parseFeed(url)
+    const newEpisodes = page.episodes.filter(
+      ({ id }) => !podcast.episodes.find(v => v.id === id)
+    )
+    podcast.episodes.push(...newEpisodes)
+    if (newEpisodes.length > 0)
+      return (
+        page.nextPage ??
+        (podcast.generator?.includes('squarespace.com')
+          ? guessNextPage(url)
+          : undefined)
+      )
+  }
+
+  if (podcast.generator?.includes('squarespace.com') && !podcast.nextPage)
+    podcast.nextPage = guessNextPage(feed)
+
   let paginated = false
+  const maxPage = podcast.hub ? 100 : 10
 
-  if (podcast.generator?.includes('squarespace.com')) {
-    const maxPage = 5
-    const url = new URL(feed)
-
-    for (let page = 2; page <= maxPage; page++)
+  if (podcast.lastPage) {
+    const pages = guessPageRange(feed, podcast.lastPage).slice(0, maxPage)
+    if (pages.length) {
+      console.log('parse pages', ...pages)
+      paginated = true
+      await Promise.all(pages.map(parsePage))
+    }
+  } else {
+    let next = podcast.nextPage
+    for (let i = 0; i < maxPage && next; i++) {
+      console.log('parse page', next)
       try {
-        url.searchParams.set('page', page.toString())
-
-        const parsed = await parseFeed(url.toString())
-        const newEpisodes = parsed.episodes.filter(
-          ({ id }) => !podcast.episodes.find(v => v.id === id)
-        )
-        console.log(`${newEpisodes.length} new episodes on page ${2}`)
-        if (newEpisodes.length === 0) break
-
-        podcast.episodes.push(...newEpisodes)
-        paginated = true
+        next = await parsePage(next)
+        if (next) paginated = true
       } catch (e) {
-        console.error('failed to parse page ' + page, e)
+        console.error('failed to parse', next, e)
         break
       }
+    }
   }
 
   if (crc !== podcast.crc || paginated) await writePodcast(podcast, episodes)
@@ -68,6 +85,33 @@ export default async function ({ feed, id }: { feed: string; id: string }) {
     id: podcast.id,
     title: podcast.title,
     episodes: podcast.episodes.length,
+  }
+}
+
+const guessNextPage = (url: string) => {
+  const next = new URL(url)
+  const page = next.searchParams.get('page')
+  next.searchParams.set('page', ((page ? parseInt(page) : 1) + 1).toString())
+  return next.toString()
+}
+
+const guessPageRange = (current: string, end: string) => {
+  try {
+    const a = new URL(current)
+    const b = new URL(end)
+    if (a.origin + a.pathname !== b.origin + b.pathname) return []
+    const i0 = a.searchParams.has('page')
+      ? parseInt(a.searchParams.get('page'))
+      : 1
+    const ie = parseInt(b.searchParams.get('page'))
+    return Array(ie - i0)
+      .fill('')
+      .map((_, i) => {
+        a.searchParams.set('page', (i + i0 + 1).toString())
+        return a.toString()
+      })
+  } catch (e) {
+    return []
   }
 }
 

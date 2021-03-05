@@ -7,6 +7,10 @@ query ParseQuery($feed: String!) {
     subtitle
     artwork
     generator
+    nextPage
+    lastPage
+    hub
+    self
     episodes {
       id
       url
