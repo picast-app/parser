@@ -1,6 +1,6 @@
 import { ApolloServer, makeExecutableSchema } from 'apollo-server-lambda'
-import * as resolvers from './resolvers'
-import * as typeDefs from './schema'
+import * as resolvers from '~/resolvers'
+import * as typeDefs from '~/schema'
 import { Headers } from '~/utils/http'
 
 export const requests = {}

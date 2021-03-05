@@ -1,13 +1,13 @@
 import 'source-map-support/register'
-import { server } from './apollo'
+import { server } from '~/gql/apollo'
 import PARSE_QUERY from './gql/parseQuery.gql'
 import { print } from 'graphql'
-import * as index from './utils/podcastindex'
-import { numberToId, episodeSK, vowelShift, guidSha1 } from './utils/id'
-import { sns } from './utils/aws'
-import { pickKeys } from './utils/object'
-import fetchArt from './utils/fetchArt'
-import * as db from './utils/db'
+import * as index from '~/utils/podcastindex'
+import { numberToId, episodeSK, vowelShift, guidSha1 } from '~/utils/id'
+import { sns } from '~/utils/aws'
+import { pickKeys } from '~/utils/object'
+import fetchArt from '~/utils/fetchArt'
+import * as db from '~/utils/db'
 import { episodes as eps } from '@picast-app/db'
 import { crc32 } from 'crc'
 import { DBRecord } from 'ddbjs'
@@ -36,19 +36,28 @@ export default async function ({ feed, id }: { feed: string; id: string }) {
 
   const { crc, episodes } = (await podProm) ?? {}
 
-  async function parsePage(url: string): Promise<string | undefined> {
-    const page = await parseFeed(url)
-    const newEpisodes = page.episodes.filter(
-      ({ id }) => !podcast.episodes.find(v => v.id === id)
-    )
-    podcast.episodes.push(...newEpisodes)
-    if (newEpisodes.length > 0)
-      return (
-        page.nextPage ??
-        (podcast.generator?.includes('squarespace.com')
-          ? guessNextPage(url)
-          : undefined)
+  async function parsePage(
+    url: string,
+    retry = 2
+  ): Promise<string | undefined> {
+    try {
+      const page = await parseFeed(url)
+      const newEpisodes = page.episodes.filter(
+        ({ id }) => !podcast.episodes.find(v => v.id === id)
       )
+      podcast.episodes.push(...newEpisodes)
+      if (newEpisodes.length > 0)
+        return (
+          page.nextPage ??
+          (podcast.generator?.includes('squarespace.com')
+            ? guessNextPage(url)
+            : undefined)
+        )
+    } catch (e) {
+      if (retry <= 0) throw e
+      await new Promise(res => setTimeout(res, 1000))
+      return await parsePage(url, retry - 1)
+    }
   }
 
   if (podcast.generator?.includes('squarespace.com') && !podcast.nextPage)
@@ -62,7 +71,13 @@ export default async function ({ feed, id }: { feed: string; id: string }) {
     if (pages.length) {
       console.log('parse pages', ...pages)
       paginated = true
-      await Promise.all(pages.map(parsePage))
+      await Promise.all(
+        pages.map(page =>
+          parsePage(page).catch(e => {
+            console.error('failed to parse page', page, e)
+          })
+        )
+      )
     }
   } else {
     let next = podcast.nextPage

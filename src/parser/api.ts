@@ -1,11 +1,8 @@
 import { APIGatewayEvent, SNSEvent } from 'aws-lambda'
 import 'source-map-support/register'
-import { handler } from './apollo'
-import wrap from './utils/handler'
+import wrap from '~/utils/handler'
 import parseFeed from './parse'
 import { Headers } from '~/utils/http'
-
-export const graph = handler
 
 export const parse = wrap<APIGatewayEvent | SNSEvent>(async event => {
   const feeds: { feed: string; id?: string }[] = []

@@ -29,7 +29,7 @@ provider:
 
 functions:
   graph:
-    handler: src/handler.graph
+    handler: src/gql/handler.server
     events:
       - http:
           path: /
@@ -39,7 +39,7 @@ functions:
           method: post
 
   parser:
-    handler: src/handler.parse
+    handler: src/parser/api.parse
     events:
       - http:
           path: /parse
