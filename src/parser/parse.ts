@@ -1,8 +1,8 @@
 import fetchFeed from '~/utils/fetchFeed'
-import processArt from './image'
 import * as gql from './gql'
 import * as db from '~/utils/db'
 import * as format from './format'
+import * as art from './image'
 
 export async function parse({ id, feed }: { id: string; feed?: string }) {
   if (!id || !feed) throw Error('must provide podcast id & feed')
@@ -29,8 +29,9 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
 async function storeMeta(data: any, episodes?: any[]) {
   logger.info(`store meta ${data.id} (${data.title})`)
   const meta = format.meta(data, episodes)
+  if (process.env.IS_OFFLINE) meta.covers = await art.fetch(data.id)
   const old = await db.podcasts.update(data.id, meta).returning('OLD')
-  if (old?.artwork !== meta.artwork) await processArt(data.id, meta.artwork)
+  if (old?.artwork !== meta.artwork) await art.resize(data.id, meta.artwork)
 }
 
 async function storeParserMeta(data: any, episodes: any[]) {
