@@ -4,7 +4,6 @@ provider:
   name: aws
   runtime: nodejs12.x
   stage: ${opt:stage, 'prod'}
-  timeout: 60
   region: eu-west-1
   apiGateway:
     shouldStartNameWithService: true
@@ -20,6 +19,11 @@ provider:
         - 'sns:Publish'
       Resource:
         - ${ssm:/echo/sns/resize/arn}
+    - Effect: 'Allow'
+      Action:
+        - 'lambda:InvokeFunction'
+      Resource:
+        - 'arn:aws:lambda:*'
   environment:
     stage: ${self:provider.stage}
     PI_API_KEY: ${ssm:/echo/pi/key}
@@ -38,14 +42,22 @@ functions:
           path: /
           method: post
 
-  parser:
-    handler: src/parser/api.parse
+  parsePodcast:
+    handler: src/parser/api.parsePodcast
+    memorySize: 256
+    events:
+      - sns:
+          arn: ${ssm:/echo/sns/parser/arn}
+
+  httpWrap:
+    handler: src/parser/api.httpWrap
     events:
       - http:
           path: /parse
           method: post
-      - sns:
-          arn: ${ssm:/echo/sns/parser/arn}
+
+package:
+  individually: true
 
 plugins:
   - serverless-webpack

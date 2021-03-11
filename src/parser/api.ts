@@ -1,24 +1,38 @@
-import { APIGatewayEvent, SNSEvent } from 'aws-lambda'
-import 'source-map-support/register'
+import '~/utils/logger'
 import wrap from '~/utils/handler'
-import parseFeed from './parse'
+import { parse } from './parse'
 import { Headers } from '~/utils/http'
+import type { SNSEvent, APIGatewayEvent } from 'aws-lambda'
 
-export const parse = wrap<APIGatewayEvent | SNSEvent>(async event => {
-  const feeds: { feed: string; id?: string }[] = []
+export const parsePodcast = wrap<SNSEvent>(async (event, context) => {
+  context.callbackWaitsForEmptyEventLoop = false
+  const tasks = parseMessages(event)
+  const results = await Promise.allSettled(tasks.map(parse))
 
-  if ('Records' in event) {
-    feeds.push(...event.Records.map(({ Sns }) => JSON.parse(Sns.Message)))
-  } else {
-    if (new Headers(event.headers).get('auth') !== process.env.PARSER_AUTH)
-      return {
-        statusCode: 401,
-      }
-    feeds.push(JSON.parse(event.body) ?? {})
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      logger.error('parse failed', result.reason)
+    }
   }
+})
 
-  const [res] = await Promise.all(feeds.map(parseFeed))
+function parseMessages(event: SNSEvent) {
+  const tasks: any[] = []
+  for (const { Sns } of event.Records) {
+    try {
+      tasks.push(JSON.parse(Sns.Message))
+    } catch (e) {
+      logger.error('failed to parse', Sns?.Message, e)
+    }
+  }
+  return tasks
+}
 
-  if ('Records' in event) return
-  return res
+export const httpWrap = wrap<APIGatewayEvent>(async (event, ...args) => {
+  logger.info(event)
+  if (new Headers(event.headers).get('auth') !== process.env.PARSER_AUTH)
+    throw 401
+
+  // @ts-ignore
+  await parsePodcast({ Records: [{ Sns: { Message: event.body } }] }, ...args)
 })
