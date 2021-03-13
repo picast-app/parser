@@ -1,11 +1,15 @@
 import '~/utils/logger'
 import wrap from '~/utils/handler'
-import { parse } from './parse'
+import { parse, parseIncrementalPage } from './parse'
 import { Headers } from '~/utils/http'
 import type { SNSEvent, APIGatewayEvent } from 'aws-lambda'
 
 export const parsePodcast = wrap<SNSEvent>(async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false
+
+  if (!('Records' in event))
+    return await parseIncrementalPage((event as any).id, (event as any).page)
+
   const tasks = parseMessages(event)
   const results = await Promise.allSettled(tasks.map(parse))
 

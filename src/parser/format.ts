@@ -3,9 +3,9 @@ import { crc32 } from 'crc'
 import { episodeSK, vowelShift, guidSha1 } from '~/utils/id'
 import { episodes as eps } from '@picast-app/db'
 
-export const episodes = (podcast: any, firstPass = false) =>
+export const episodes = (podcast: any, firstPass = false, pId = podcast.id) =>
   podcast.episodes.map(({ id: guid, published = 0, ...rest }) => ({
-    pId: podcast.id,
+    pId,
     eId: episodeSK(
       vowelShift(parseInt(guidSha1(guid), 16).toString(36)),
       published
@@ -16,16 +16,12 @@ export const episodes = (podcast: any, firstPass = false) =>
     ...rest,
   }))
 
-export const episodeCheck = (episodes: any[]) => ({
-  episodeCount: episodes.length,
-  episodeCheck: eps.hashIds(episodes.map(({ id }) => id)),
-})
+export const episodeCheck = (episodes: string[]) => eps.hashIds(episodes)
 
-export const meta = (data: any, episodes?: any[]) => {
+export const meta = (data: any) => {
   const meta: any = obj.pickKeys(
     data,
     'feed',
-    'crc',
     'title',
     'author',
     'description',
@@ -33,6 +29,6 @@ export const meta = (data: any, episodes?: any[]) => {
     'artwork'
   )
   meta.check = crc32(JSON.stringify(meta)).toString(36)
-  if (episodes) Object.assign(meta, episodeCheck(episodes))
+  Object.assign(meta, obj.pickKeys(data, 'crc', 'episodeCheck'))
   return meta
 }

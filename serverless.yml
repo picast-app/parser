@@ -45,6 +45,7 @@ functions:
   parsePodcast:
     handler: src/parser/api.parsePodcast
     memorySize: 256
+    timeout: 30
     events:
       - sns:
           arn: ${ssm:/echo/sns/parser/arn}
@@ -71,4 +72,6 @@ custom:
   webpack:
     webpackConfig: 'webpack.config.js'
     packager: 'npm'
-    includeModules: true
+    includeModules:
+      forceExclude:
+        - aws-sdk
