@@ -20,7 +20,8 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
     db.parser.get(`${id}#parser`),
   ])
 
-  if (existing?.crc === crc && !process.env.IS_OFFLINE) return
+  if (existing?.crc === crc && !process.env.IS_OFFLINE)
+    return await mutex.unlock(id)
 
   const data = await gql.parse(feed)
   data.id = id
@@ -58,7 +59,7 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
   )
   await storeEpisodes(added)
 
-  if (pagination.type === 'none' || hasKnown) return
+  if (pagination.type === 'none' || hasKnown) return await mutex.unlock(id)
   if (pagination.type === 'incr') await page.schedule(id, pagination.next)
 }
 

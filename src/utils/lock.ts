@@ -3,7 +3,7 @@ import { locks } from './db'
 export async function lock(name: string): Promise<boolean> {
   try {
     await locks
-      .put({ id: name, ttl: Math.floor((Date.now() + 60 ** 2 * 1000) / 1000) })
+      .put({ id: name, ttl: Math.floor(Date.now() / 1000) + 60 })
       .ifNotExists()
   } catch (e) {
     if (e.code === 'ConditionalCheckFailedException') return false
