@@ -4,7 +4,6 @@ provider:
   name: aws
   runtime: nodejs12.x
   stage: ${opt:stage, 'prod'}
-  timeout: 60
   region: eu-west-1
   apiGateway:
     shouldStartNameWithService: true
@@ -15,11 +14,17 @@ provider:
       Resource:
         - ${ssm:/echo/ddb/podcasts/arn}
         - ${ssm:/echo/ddb/episodes/arn}
+        - ${ssm:/echo/ddb/locks/arn}
     - Effect: 'Allow'
       Action:
         - 'sns:Publish'
       Resource:
         - ${ssm:/echo/sns/resize/arn}
+    - Effect: 'Allow'
+      Action:
+        - 'lambda:InvokeFunction'
+      Resource:
+        - 'arn:aws:lambda:*'
   environment:
     stage: ${self:provider.stage}
     PI_API_KEY: ${ssm:/echo/pi/key}
@@ -29,7 +34,7 @@ provider:
 
 functions:
   graph:
-    handler: src/handler.graph
+    handler: src/gql/handler.server
     events:
       - http:
           path: /
@@ -38,14 +43,23 @@ functions:
           path: /
           method: post
 
-  parser:
-    handler: src/handler.parse
+  parsePodcast:
+    handler: src/parser/api.parsePodcast
+    memorySize: 256
+    timeout: 30
+    events:
+      - sns:
+          arn: ${ssm:/echo/sns/parser/arn}
+
+  httpWrap:
+    handler: src/parser/api.httpWrap
     events:
       - http:
           path: /parse
           method: post
-      - sns:
-          arn: ${ssm:/echo/sns/parser/arn}
+
+package:
+  individually: true
 
 plugins:
   - serverless-webpack
@@ -59,4 +73,6 @@ custom:
   webpack:
     webpackConfig: 'webpack.config.js'
     packager: 'npm'
-    includeModules: true
+    includeModules:
+      forceExclude:
+        - aws-sdk

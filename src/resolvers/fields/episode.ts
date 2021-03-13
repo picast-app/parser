@@ -14,7 +14,8 @@ export default {
   shownotes:  $`> body
                 > content:encoded
                 > fullitem
-                > atom10:content`,
+                > atom10:content
+                > description`,
 
   published:  $`> pubDate`.time,
 

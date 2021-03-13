@@ -15,6 +15,7 @@ module.exports = {
     module: true,
     process: true,
     require: true,
+    logger: 'readonly',
   },
   rules: {
     'no-restricted-globals': 'off',
@@ -25,5 +26,6 @@ module.exports = {
     '@typescript-eslint/ban-ts-comment': 'off',
     '@typescript-eslint/no-var-requires': 'off',
     '@typescript-eslint/no-empty-function': 'off',
+    'no-return-assign': 'off',
   },
 }
