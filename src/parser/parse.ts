@@ -4,9 +4,15 @@ import * as db from '~/utils/db'
 import * as format from './format'
 import * as art from './image'
 import * as page from './pagination'
+import * as mutex from '~/utils/lock'
 
 export async function parse({ id, feed }: { id: string; feed?: string }) {
   if (!id || !feed) throw Error('must provide podcast id & feed')
+  if (!(await mutex.lock(id))) {
+    logger.info(`skip parse ${id} (locked)`)
+    return
+  }
+
   logger.info('parse', { id, feed })
 
   const [{ crc }, existing] = await Promise.all([
@@ -98,6 +104,8 @@ async function finalize(id: string) {
 
   logger.info(`${episodes.length} episodes (${episodeCheck})`)
   await db.podcasts.update(id, { episodeCheck, episodeCount: episodes.length })
+
+  await mutex.unlock(id)
 }
 
 async function storeMeta(data: any, eps?: { deltaEps: number }) {

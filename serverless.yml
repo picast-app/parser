@@ -14,6 +14,7 @@ provider:
       Resource:
         - ${ssm:/echo/ddb/podcasts/arn}
         - ${ssm:/echo/ddb/episodes/arn}
+        - ${ssm:/echo/ddb/locks/arn}
     - Effect: 'Allow'
       Action:
         - 'sns:Publish'
