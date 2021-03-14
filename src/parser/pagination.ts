@@ -1,4 +1,5 @@
 import { Lambda } from 'aws-sdk'
+import * as lock from '~/utils/lock'
 
 type PageOpts =
   | { type: 'none' }
@@ -57,15 +58,25 @@ const guessPageRange = (current: string, end: string) => {
   }
 }
 
-export async function schedule(id: string, page: string) {
-  logger.info(`schedule parse ${page}`)
+export async function schedule(id: string, ...pages: string[]) {
+  logger.info(`schedule parse ${pages.join(', ')}`)
 
   const lambda = new Lambda({ region: 'eu-west-1' })
-  await lambda
-    .invoke({
-      FunctionName: 'parser-prod-parsePodcast',
-      InvocationType: 'Event',
-      Payload: JSON.stringify({ id, page }),
-    })
-    .promise()
+  const invoke = (data: any) =>
+    lambda
+      .invoke({
+        FunctionName: 'parser-prod-parsePodcast',
+        InvocationType: 'Event',
+        Payload: JSON.stringify(data),
+      })
+      .promise()
+
+  if (pages.length === 1) {
+    await invoke({ id, page: pages[0], incremental: true })
+  } else {
+    await lock.createCountdown(id, pages.length)
+    await Promise.all(
+      pages.map(page => invoke({ id, page, incremental: false }))
+    )
+  }
 }

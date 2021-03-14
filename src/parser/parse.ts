@@ -14,7 +14,6 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
   }
 
   logger.info('parse', { id, feed })
-
   const [{ crc }, existing] = await Promise.all([
     fetchFeed(feed, false),
     db.parser.get(`${id}#parser`),
@@ -60,12 +59,15 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
   await storeEpisodes(added)
 
   if (pagination.type === 'none' || hasKnown) return await mutex.unlock(id)
-  if (pagination.type === 'incr') await page.schedule(id, pagination.next)
+  await page.schedule(
+    id,
+    ...(pagination.type === 'incr' ? [pagination.next] : pagination.pages)
+  )
 }
 
-export async function parseIncrementalPage(id: string, pageUrl: string) {
+export async function parsePage(id: string, pageUrl: string, incr: boolean) {
   if (!id || !pageUrl) throw Error('must provide podcast id & feed')
-  logger.info(`parse ${id} incremental page ${pageUrl}`)
+  logger.info(`parse ${id} ${incr ? 'incremental' : 'batch'} page ${pageUrl}`)
 
   try {
     const [data, existing] = await Promise.all([
@@ -73,13 +75,13 @@ export async function parseIncrementalPage(id: string, pageUrl: string) {
       db.parser.get(`${id}#parser`),
     ])
 
-    const episodes = format.episodes(data, !existing, id)
+    const episodes = format.episodes(data, true, id)
     const added = episodes.filter(
       ({ eId }) => !existing?.episodes?.includes(eId)
     )
     logger.info(`${episodes.length} episodes, ${added.length} new`)
 
-    if (!added.length) return finalize(id)
+    if (incr && !added.length) return await finalize(id)
 
     await Promise.all([
       storeParserMeta(
@@ -90,17 +92,18 @@ export async function parseIncrementalPage(id: string, pageUrl: string) {
       storeEpisodes(added),
     ])
 
-    await page.schedule(id, page.guessNextPage(pageUrl))
+    if (incr) await page.schedule(id, page.guessNextPage(pageUrl))
+    else if (!(await mutex.countdown(id))) await finalize(id)
   } catch (error) {
     logger.warn(`failed to parse ${id} ${page}`, { error })
-    await finalize(id)
+    if (incr || !(await mutex.countdown(id))) await finalize(id)
   }
 }
 
 async function finalize(id: string) {
   logger.info(`finalize ${id}`)
 
-  const { episodes } = await db.parser.get(`${id}#parser`)
+  const { episodes } = await db.parser.get(`${id}#parser`).strong()
   const episodeCheck = format.episodeCheck(episodes)
 
   logger.info(`${episodes.length} episodes (${episodeCheck})`)
