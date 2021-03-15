@@ -45,7 +45,7 @@ functions:
 
   parsePodcast:
     handler: src/parser/api.parsePodcast
-    memorySize: 256
+    memorySize: 512
     timeout: 30
     events:
       - sns:

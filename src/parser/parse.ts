@@ -159,7 +159,8 @@ async function storeParserMeta(
       .returning('NEW')
 
     if (episodes?.length) query = query.add({ episodes })
-    if (opts?.remove?.length) query = query.delete({ episodes: opts.remove })
+    if (opts.remove?.length)
+      await db.parser.update(record).delete({ episodes: opts.remove })
 
     const { episodes: epIds } = await query
     return epIds
