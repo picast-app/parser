@@ -9,3 +9,4 @@ feed_cache
 /report.*
 *credentials*
 .npmrc
+src/websub/*.js*

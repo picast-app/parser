@@ -15,6 +15,7 @@ provider:
         - ${ssm:/echo/ddb/podcasts/arn}
         - ${ssm:/echo/ddb/episodes/arn}
         - ${ssm:/echo/ddb/locks/arn}
+        - ${ssm:/echo/ddb/websub/arn}
     - Effect: 'Allow'
       Action:
         - 'sns:Publish'
@@ -37,10 +38,10 @@ functions:
     handler: src/gql/handler.server
     events:
       - http:
-          path: /
+          path: /graphql
           method: get
       - http:
-          path: /
+          path: /graphql
           method: post
 
   parsePodcast:
@@ -56,6 +57,23 @@ functions:
     events:
       - http:
           path: /parse
+          method: post
+
+  websubDB:
+    handler: src/websub/handler.dbUpdate
+    events:
+      - stream:
+          type: dynamodb
+          arn: ${ssm:/echo/ddb/websub/streamarn}
+
+  websubPush:
+    handler: src/websub/handler.pushHandler
+    events:
+      - http:
+          path: /{any+}
+          method: get
+      - http:
+          path: /{any+}
           method: post
 
 package:
