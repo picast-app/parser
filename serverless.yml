@@ -66,14 +66,18 @@ functions:
           type: dynamodb
           arn: ${ssm:/echo/ddb/websub/streamarn}
 
-  websubPush:
-    handler: src/websub/handler.pushHandler
+  websubChallenge:
+    handler: src/websub/handler.challenge
     events:
       - http:
-          path: /{any+}
+          path: /{id}
           method: get
+          
+  websubPush:
+    handler: src/websub/handler.push
+    events:
       - http:
-          path: /{any+}
+          path: /{id}
           method: post
 
 package:
