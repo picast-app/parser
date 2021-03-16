@@ -5,6 +5,7 @@ import * as format from './format'
 import * as art from './image'
 import * as page from './pagination'
 import * as mutex from '~/utils/lock'
+import websub from '~/websub/discovered'
 
 export async function parse({ id, feed }: { id: string; feed?: string }) {
   if (!id || !feed) throw Error('must provide podcast id & feed')
@@ -26,6 +27,8 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
   data.id = id
   data.feed = feed
   data.crc = crc
+
+  if (data.hub && data.self) await websub(id, data.hub, data.self)
 
   const episodes = format.episodes(data, !existing)
   const pagination = page.opts(data)
