@@ -5,19 +5,24 @@ const $ = buildSelector((episode: Element) => episode)
 // prettier-ignore
 export default {
   id:         $`> guid
-                > enclosure.url`,
+                > enclosure.url
+                > id`,
             
   title:      $`> title`.strip,
 
-  url:        $`> enclosure.url`,
+  url:        $`> enclosure.url
+                > link[rel='enclosure'].href`,
 
   shownotes:  $`> body
                 > content:encoded
                 > fullitem
                 > atom10:content
-                > description`,
+                > description
+                > summary
+                > content`,
 
-  published:  $`> pubDate`.time,
+  published:  $`> pubDate
+                > published`.time,
 
   duration:   $`> itunes:duration`.duration
 }

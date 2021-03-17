@@ -95,6 +95,9 @@ export const challenge = wrap(async event => {
 })
 
 export async function push(event: APIGatewayEvent) {
-  logger.info(`push to ${event.path}`, { body: event.body })
+  logger.info(
+    `push to ${event.path}`,
+    pick(event, 'body', 'headers', 'queryStringParameters')
+  )
   return { statusCode: 200 }
 }

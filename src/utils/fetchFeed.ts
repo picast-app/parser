@@ -30,10 +30,14 @@ const fetch = async (url: string): Promise<string> => {
 const parseFeed = (raw: string): Parsed => {
   const { document } = new JSDOM(raw, { contentType: 'text/xml' }).window
 
-  const channel = document.querySelector('channel')
-  if (!channel) throw Error("feed doesn't contain a channel element")
+  const channel =
+    document.querySelector('channel') ?? document.querySelector('feed')
+  if (!channel) throw Error("feed doesn't contain a channel or feed element")
 
-  const episodes = Array.from(channel.querySelectorAll(':scope > item'))
+  const episodes = [
+    ...channel.querySelectorAll(':scope > item'),
+    ...channel.querySelectorAll(':scope > entry'),
+  ]
   episodes.forEach(node => node.remove())
 
   return {
