@@ -28,7 +28,12 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
   data.feed = feed
   data.crc = crc
 
-  if (data.hub && data.self) await websub(id, data.hub, data.self)
+  if (
+    data.hub &&
+    data.self &&
+    (existing.websub?.hub !== data.hub || existing.websub?.self !== data.self)
+  )
+    await websub(id, data.hub, data.self)
 
   const episodes = format.episodes(data, !existing)
   const pagination = page.opts(data)
@@ -156,10 +161,12 @@ async function storeParserMeta(
               feed: data.feed,
               crc: data.crc,
               lastParsed: Date.now(),
+              ...(data.hub && { websub: { hub: data.hub, self: data.self } }),
             }
           : undefined
       )
       .returning('NEW')
+    if (!data.hub) query = query.remove('websub')
 
     if (episodes?.length) query = query.add({ episodes })
     if (opts.remove?.length)

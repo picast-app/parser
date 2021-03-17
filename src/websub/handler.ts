@@ -6,7 +6,7 @@ import crypto from 'crypto'
 import { pickKeys as pick } from '~/utils/object'
 import { wrap } from './util'
 import type { DBRecord } from 'ddbjs'
-import type { DynamoDBStreamEvent, APIGatewayEvent } from 'aws-lambda'
+import type { DynamoDBStreamEvent } from 'aws-lambda'
 
 export async function dbUpdate(event: DynamoDBStreamEvent) {
   const tasks: Promise<any>[] = []
@@ -46,10 +46,12 @@ async function subscribe(record: DBRecord<typeof db['websub']>) {
   })
 
   if (response.status < 400) return logger.info('request successful')
+  logger.warn('failed to setup websub subscription')
 
-  await db.websub
-    .update(record.podcast, { status: 'rejected' })
-    .remove('secret')
+  await Promise.all([
+    db.websub.update(record.podcast, { status: 'rejected' }).remove('secret'),
+    db.parser.update(`${record.podcast}#parser`).remove('websub'),
+  ])
   throw response.statusText
 }
 
@@ -93,11 +95,3 @@ export const challenge = wrap(async event => {
   logger.info('challenge completed')
   return challenge
 })
-
-export async function push(event: APIGatewayEvent) {
-  logger.info(
-    `push to ${event.path}`,
-    pick(event, 'body', 'headers', 'queryStringParameters')
-  )
-  return { statusCode: 200 }
-}
