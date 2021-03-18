@@ -31,7 +31,7 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
   if (
     data.hub &&
     data.self &&
-    (existing.websub?.hub !== data.hub || existing.websub?.self !== data.self)
+    (existing?.websub?.hub !== data.hub || existing?.websub?.self !== data.self)
   )
     await websub(id, data.hub, data.self)
 

@@ -72,9 +72,9 @@ functions:
       - http:
           path: /{id}
           method: get
-          
+
   websubPush:
-    handler: src/websub/handler.push
+    handler: src/websub/push.handler
     events:
       - http:
           path: /{id}

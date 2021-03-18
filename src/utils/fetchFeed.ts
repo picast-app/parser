@@ -17,6 +17,12 @@ export default async function fetchFeed(url: string, useCache = true) {
   return cache[url]
 }
 
+export function storePartial(raw: string) {
+  const parsed = parseFeed(raw)
+  cache[parsed.crc] ??= Promise.resolve(parsed)
+  return parsed.crc
+}
+
 const fetch = async (url: string): Promise<string> => {
   try {
     const { data } = await axios.get(url)

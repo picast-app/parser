@@ -18,8 +18,8 @@ export default {
                 > fullitem
                 > atom10:content
                 > description
-                > summary
-                > content`,
+                > content
+                > summary`,
 
   published:  $`> pubDate
                 > published`.time,
