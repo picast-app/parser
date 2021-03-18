@@ -1,7 +1,6 @@
 import * as obj from '~/utils/object'
-import { crc32 } from 'crc'
 import { episodeSK, vowelShift, guidSha1 } from '~/utils/id'
-import { episodes as eps } from '@picast-app/db'
+import { episodes as eps, meta as dbMeta } from '@picast-app/db'
 
 export const episodes = (podcast: any, firstPass = false, pId = podcast.id) =>
   podcast.episodes.map(({ id: guid, published = 0, ...rest }) => ({
@@ -26,9 +25,9 @@ export const meta = (data: any) => {
     'author',
     'description',
     'subtitle',
-    'artwork'
+    'artwork',
+    'crc',
+    'episodeCheck'
   )
-  meta.check = crc32(JSON.stringify(meta)).toString(36)
-  Object.assign(meta, obj.pickKeys(data, 'crc', 'episodeCheck'))
-  return meta
+  return { ...meta, check: dbMeta.check(meta) }
 }

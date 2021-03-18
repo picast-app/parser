@@ -9,7 +9,10 @@ import * as db from '~/utils/db'
 import cyrpto from 'crypto'
 
 export const handler = wrap(async event => {
-  logger.info(`push to ${event.path}`, pick(event, 'body', 'headers'))
+  logger.info(
+    `push to ${event.path}`,
+    pick(event, 'pathParameters', 'body', 'headers')
+  )
 
   const record = await db.websub.get(event.pathParameters.id)
   const headers = new Headers(event.headers)
@@ -38,7 +41,7 @@ export const handler = wrap(async event => {
     db.parser
       .update(`${event.pathParameters.id}#parser`, { episodeCheck })
       .add({ episodes: newIds }),
-    db.episodes.batchPut(episodes),
+    db.episodes.batchPut(...episodes),
   ])
 }, 200)
 

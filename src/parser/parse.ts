@@ -20,8 +20,11 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
     db.parser.get(`${id}#parser`),
   ])
 
-  if (existing?.crc === crc && !process.env.IS_OFFLINE)
-    return await mutex.unlock(id)
+  if (existing?.crc === crc && !process.env.IS_OFFLINE) {
+    await mutex.unlock(id)
+    logger.info('skip parse (crc matches)')
+    return
+  }
 
   const data = await gql.parse(feed)
   data.id = id
