@@ -7,6 +7,7 @@ import * as page from './pagination'
 import * as mutex from '~/utils/lock'
 import websub from '~/websub/discovered'
 import { UpdateTime, filterTime } from '~/utils/upTimes'
+import type { DBRecord } from 'ddbjs'
 
 export async function parse({ id, feed }: { id: string; feed?: string }) {
   if (!id || !feed) throw Error('must provide podcast id & feed')
@@ -30,10 +31,15 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
   times.lastChecked = new Date(headers.get('date'))
   times.etag = headers.get('etag')
 
+  const cacheHeaders: DBRecord<typeof db.parser>['cacheHeaders'] = {
+    etag: headers.has('etag'),
+    lastModified: headers.has('last-modified'),
+  }
+
   if (existing?.crc === crc && !process.env.IS_OFFLINE) {
     await Promise.all([
       mutex.unlock(id),
-      db.parser.update(`${id}#parser`, filterTime(times)),
+      db.parser.update(`${id}#parser`, { ...filterTime(times), cacheHeaders }),
     ])
     logger.info('skip parse (crc matches)')
     return
@@ -72,7 +78,7 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
     await storeParserMeta(
       data,
       added.map(({ eId }) => eId),
-      { remove: removed, times }
+      { remove: removed, times, cacheHeaders }
     )
   )
 
@@ -167,12 +173,14 @@ async function storeParserMeta(
     record = `${data.id}#parser`,
     firstPage = true,
     times,
+    cacheHeaders,
     ...opts
   }: {
     record?: string
     remove?: string[]
     firstPage?: boolean
     times?: UpdateTime
+    cacheHeaders?: DBRecord<typeof db.parser>['cacheHeaders']
   } = {}
 ) {
   logger.info(`store parser meta`, { record, firstPage })
@@ -187,6 +195,7 @@ async function storeParserMeta(
               lastParsed: Date.now(),
               ...(data.hub && { websub: { hub: data.hub, self: data.self } }),
               ...(firstPage && filterTime(times)),
+              ...(cacheHeaders && { cacheHeaders }),
             }
           : undefined
       )

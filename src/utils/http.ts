@@ -10,4 +10,8 @@ export class Headers {
   public get(name: string) {
     return this.headers[name.toLowerCase()]
   }
+
+  public has(name: string) {
+    return name.toLowerCase() in this.headers
+  }
 }
