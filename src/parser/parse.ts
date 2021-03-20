@@ -28,6 +28,7 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
   logger.info('header:', headers.get('last-modified'))
 
   times.lastChecked = new Date(headers.get('date'))
+  times.etag = headers.get('etag')
 
   if (existing?.crc === crc && !process.env.IS_OFFLINE) {
     await Promise.all([

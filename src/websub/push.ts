@@ -23,6 +23,7 @@ export const handler = wrap(async event => {
     lastRequested: new Date(),
     lastChecked: new Date(headers.get('date')),
     lastModified: new Date(headers.get('last-modified') ?? Date.now()),
+    etag: headers.get('etag'),
   }
 
   const [data, parserMeta] = await Promise.all([

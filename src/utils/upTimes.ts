@@ -1,8 +1,9 @@
-export type UpdateTime = Partial<
-  {
-    [K in 'lastRequested' | 'lastChecked' | 'lastModified']: Date
-  }
->
+export type UpdateTime = Partial<{
+  etag: string
+  lastRequested: Date
+  lastChecked: Date
+  lastModified: Date
+}>
 
 export const filterTime = (
   times: UpdateTime
@@ -14,7 +15,14 @@ export const filterTime = (
     times.lastChecked = times.lastRequested
   return Object.fromEntries(
     Object.entries(times)
-      .map(([k, v]) => [k, isNaN(v.getTime()) ? undefined : v.toUTCString()])
+      .map(([k, v]) => [
+        k,
+        k === 'etag'
+          ? v
+          : isNaN((v as Date).getTime())
+          ? undefined
+          : (v as Date).toUTCString(),
+      ])
       .filter(([, v]) => v)
   )
 }
