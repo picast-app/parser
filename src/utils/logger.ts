@@ -65,7 +65,7 @@ const format = (v: unknown, indent = 0) => {
     : ' '.repeat(indent) + v
 }
 
-const formatObject = (obj: unknown, indent = 0) => {
+const formatObject = (obj: any, indent = 0) => {
   if (Object.keys(obj).length === 0) return '{}'
   return `{\n${Object.entries(obj)
     .map(

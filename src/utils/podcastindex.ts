@@ -11,7 +11,10 @@ export const query = async (
     'X-Auth-Date': time.toString(),
     Authorization: crypto
       .createHash('sha1')
-      .update(process.env.PI_API_KEY + process.env.PI_API_SECRET + time, 'utf8')
+      .update(
+        process.env.PI_API_KEY! + process.env.PI_API_SECRET! + time,
+        'utf8'
+      )
       .digest('hex'),
     'User-Agent': 'parser.picast.app',
   }

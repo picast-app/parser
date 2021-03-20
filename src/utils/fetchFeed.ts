@@ -2,41 +2,69 @@ import axios from 'axios'
 import { JSDOM } from 'jsdom'
 import crc32 from 'crc/crc32'
 import { Headers } from './http'
+import type { DBRecord } from 'ddbjs'
+import type { parser } from '~/utils/db'
 
 type Parsed = {
-  raw: string
-  crc: string
-  channel: Element
-  episodes: Element[]
+  raw?: string
+  crc?: string
+  channel?: Element
+  episodes?: Element[]
   headers: Headers
 }
 
 const cache: Record<string, Promise<Parsed>> = {}
 
-export default async function fetchFeed(url: string, useCache = true) {
+export default async function fetchFeed(
+  url: string,
+  useCache = true,
+  record?: DBRecord<typeof parser>
+): Promise<Parsed> {
   logger.info(`fetch feed ${url}` + (useCache ? ' from cache' : ''))
-  if (!useCache || !(url in cache))
-    cache[url] = fetch(url).then(([txt, headers]) => parseFeed(txt, headers))
+  if (!useCache || !(url in cache)) {
+    let cacheConds: {
+      'If-Modified-Since'?: string
+      'If-None-Match'?: string
+    } = {}
+    if (record) {
+      if (record.cacheHeaders?.lastModified || !record.cacheHeaders?.etag)
+        cacheConds['If-Modified-Since'] =
+          record.lastModified ?? record.lastChecked
+      else cacheConds['If-None-Match'] = record.etag
+      cacheConds = Object.fromEntries(
+        Object.entries(cacheConds).filter(([, v]) => v)
+      )
+    }
+    cache[url] = fetch(url, cacheConds).then(res => parseFeed(...res))
+  }
   return cache[url]
 }
 
 export function storePartial(raw: string, headers: Headers) {
   const parsed = parseFeed(raw, headers)
-  cache[parsed.crc] ??= Promise.resolve(parsed)
+  cache[parsed.crc!] ??= Promise.resolve(parsed)
   return parsed.crc
 }
 
-const fetch = async (url: string): Promise<[string, Headers]> => {
+const fetch = async (
+  url: string,
+  headers: Record<string, string | undefined> = {}
+): Promise<[string | null, Headers]> => {
   try {
-    const { data, headers } = await axios.get(url)
-    return [data, new Headers(headers)]
+    const { data, headers: resHeads } = await axios.get(
+      url,
+      Object.keys(headers ?? {}).length ? { headers } : undefined
+    )
+    return [data ?? null, new Headers(resHeads)]
   } catch (e) {
-    logger.error('failed to fetch', url, e)
-    throw e
+    if (e.response?.status !== 304) throw e
+    logger.info('304: Not Modified')
+    return [null, new Headers(e.response.headers)]
   }
 }
 
-const parseFeed = (raw: string, headers: Headers): Parsed => {
+const parseFeed = (raw: string | null, headers: Headers): Parsed => {
+  if (!raw) return { headers }
   const { document } = new JSDOM(raw, { contentType: 'text/xml' }).window
 
   const channel =

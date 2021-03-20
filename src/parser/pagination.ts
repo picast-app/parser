@@ -43,9 +43,9 @@ const guessPageRange = (current: string, end: string) => {
     const b = new URL(end)
     if (a.origin + a.pathname !== b.origin + b.pathname) return []
     const i0 = a.searchParams.has('page')
-      ? parseInt(a.searchParams.get('page'))
+      ? parseInt(a.searchParams.get('page')!)
       : 1
-    const ie = parseInt(b.searchParams.get('page'))
+    const ie = parseInt(b.searchParams.get('page')!)
     return Array(ie - i0)
       .fill('')
       .map((_, i) => {

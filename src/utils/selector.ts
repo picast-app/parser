@@ -6,7 +6,7 @@ export const buildSelector = <T = Element>(
 ) => (selects: TemplateStringsArray) => {
   let mod = (v: string): any => v
   const exec = (parent: T) =>
-    mod(query(selector(parent), ...selects[0].split('\n')))
+    mod(query(selector(parent), ...selects[0].split('\n'))!)
   return Object.defineProperties(exec, {
     time: {
       get() {

@@ -15,6 +15,9 @@ export const handler = wrap(async event => {
     pick(event, 'pathParameters', 'body', 'headers')
   )
 
+  if (!event.pathParameters?.id) throw Error('path id missing')
+  if (!event.body) throw Error('body missing')
+
   const record = await db.websub.get(event.pathParameters.id)
   const headers = new Headers(event.headers)
   verifySignature(record.secret, headers.get('X-Hub-Signature'), event.body)
@@ -27,7 +30,7 @@ export const handler = wrap(async event => {
   }
 
   const [data, parserMeta] = await Promise.all([
-    gql.parse(storePartial(event.body, headers)),
+    gql.parse(storePartial(event.body, headers)!),
     db.parser
       .update(`${event.pathParameters.id}#parser`, filterTime(times))
       .returning('OLD'),

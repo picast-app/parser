@@ -19,29 +19,27 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
   const times: UpdateTime = {
     lastRequested: new Date(),
   }
+  const existing = await db.parser.get(`${id}#parser`)
 
-  logger.info('parse', { id, feed })
-  const [{ crc, headers }, existing] = await Promise.all([
-    fetchFeed(feed, false),
-    db.parser.get(`${id}#parser`),
-  ])
-
-  logger.info('header:', headers.get('last-modified'))
+  const { crc, headers } = await fetchFeed(feed, false, existing)
 
   times.lastChecked = new Date(headers.get('date'))
-  times.etag = headers.get('etag')
+  if (crc) times.etag = headers.get('etag')
 
   const cacheHeaders: DBRecord<typeof db.parser>['cacheHeaders'] = {
     etag: headers.has('etag'),
     lastModified: headers.has('last-modified'),
   }
 
-  if (existing?.crc === crc && !process.env.IS_OFFLINE) {
-    await Promise.all([
+  if (!crc || (existing?.crc === crc && !process.env.IS_OFFLINE)) {
+    await Promise.allSettled([
       mutex.unlock(id),
-      db.parser.update(`${id}#parser`, { ...filterTime(times), cacheHeaders }),
+      db.parser.update(`${id}#parser`, {
+        ...filterTime(times),
+        ...(crc && (cacheHeaders as any)),
+      }),
     ])
-    logger.info('skip parse (crc matches)')
+    logger.info(`skip parse (${crc ? 'crc matches' : 'no new content'})`)
     return
   }
 
@@ -147,8 +145,8 @@ async function finalize(id: string) {
 async function storeMeta(data: any, eps?: { deltaEps: number }) {
   logger.info(`store meta ${data.id} (${data.title})`)
   const meta = format.meta(data)
-  logger.info(meta)
   if (process.env.IS_OFFLINE) meta.covers = await art.fetch(data.id)
+  logger.info(meta)
   let query = db.podcasts.update(data.id, meta).returning('OLD')
   if (eps) query = query.add({ episodeCount: eps.deltaEps })
   const old = await query
@@ -194,7 +192,7 @@ async function storeParserMeta(
               crc: data.crc,
               lastParsed: Date.now(),
               ...(data.hub && { websub: { hub: data.hub, self: data.self } }),
-              ...(firstPage && filterTime(times)),
+              ...(firstPage && times && filterTime(times)),
               ...(cacheHeaders && { cacheHeaders }),
             }
           : undefined

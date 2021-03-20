@@ -7,5 +7,5 @@ export async function parse(feed: string) {
     query: print(PARSE_QUERY),
     variables: { feed },
   })
-  return data.podcast
+  return data?.podcast
 }
