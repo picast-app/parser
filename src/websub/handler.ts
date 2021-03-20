@@ -12,12 +12,29 @@ export async function dbUpdate(event: DynamoDBStreamEvent) {
   const tasks: Promise<any>[] = []
 
   for (const record of event.Records) {
-    if (record.eventName !== 'INSERT' || !record.dynamodb?.NewImage) continue
-    const item: DBRecord<typeof db['websub']> = DynamoDB.Converter.unmarshall(
-      record.dynamodb.NewImage
-    ) as any
-    if (item.status !== 'pending') continue
-    tasks.push(subscribe(item))
+    if (record.eventName === 'INSERT') {
+      const item: DBRecord<typeof db['websub']> = DynamoDB.Converter.unmarshall(
+        record.dynamodb.NewImage
+      ) as any
+      if (item.status !== 'pending') continue
+      tasks.push(subscribe(item))
+    } else if (record.eventName === 'REMOVE') {
+      logger.info('removed', record.dynamodb)
+      const item: DBRecord<typeof db['websub']> = DynamoDB.Converter.unmarshall(
+        record.dynamodb.OldImage
+      ) as any
+      if (item.status === 'active') {
+        logger.info('renew subscription')
+        await subscribe(item, true)
+      } else {
+        if ((item as any).attempts >= 3) {
+          logger.warn('failed to setup or confirm subscription')
+          await cleanup(item.podcast)
+        } else {
+          await subscribe(item)
+        }
+      }
+    }
   }
 
   const results = await Promise.allSettled(tasks)
@@ -25,15 +42,22 @@ export async function dbUpdate(event: DynamoDBStreamEvent) {
     if (result.status === 'rejected') logger.error('task rejected', result)
 }
 
-async function subscribe(record: DBRecord<typeof db['websub']>) {
+async function subscribe(
+  record: DBRecord<typeof db['websub']>,
+  resetAttempts = false
+) {
   logger.info('subscribe', record)
 
   const secret = crypto.randomBytes(20).toString('hex')
-  await db.websub.update(record.podcast, {
+  let q = db.websub.update(record.podcast, {
     status: 'requested',
     secret,
     requested: Date.now(),
+    ttl: Math.floor(Date.now() / 1000) + 60 ** 2,
+    ...(resetAttempts && { attempts: 1 }),
   })
+  if (!resetAttempts) q = q.add({ attempts: 1 })
+  await q
 
   const params = new URLSearchParams()
   params.set('hub.mode', 'subscribe')
@@ -48,11 +72,15 @@ async function subscribe(record: DBRecord<typeof db['websub']>) {
   if (response.status < 400) return logger.info('request successful')
   logger.warn('failed to setup websub subscription')
 
-  await Promise.all([
-    db.websub.update(record.podcast, { status: 'rejected' }).remove('secret'),
-    db.parser.update(`${record.podcast}#parser`).remove('websub'),
-  ])
+  await cleanup(record.podcast)
   throw response.statusText
+}
+
+async function cleanup(podcast: string) {
+  await Promise.all([
+    db.websub.update(podcast, { status: 'rejected' }).remove('secret'),
+    db.parser.update(`${podcast}#parser`).remove('websub'),
+  ])
 }
 
 const MIN_LEASE = 12 * 60 ** 2

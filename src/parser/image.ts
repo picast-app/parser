@@ -11,7 +11,7 @@ export async function resize(podcast: string, url: string) {
     .promise()
 }
 
-export async function fetch(id: string): Promise<string[]> {
+export async function fetch(id: string): Promise<any> {
   const { data } = await axios.post('https://api.picast.app', {
     query: `{
     podcast(id:"${id}") {
@@ -19,11 +19,19 @@ export async function fetch(id: string): Promise<string[]> {
       author
       artwork
       covers
+      palette {
+        vibrant
+        lightVibrant
+        darkVibrant
+        muted
+        lightMuted
+        darkMuted
+      }
     }
   }`,
   })
 
-  const covers = data?.data?.podcast?.covers ?? []
-  logger.info(`fetched ${covers.length} covers`)
-  return covers
+  const { covers = [], palette } = data.data.podcast
+  logger.info(`fetched ${covers?.length} covers`)
+  return { covers, palette }
 }

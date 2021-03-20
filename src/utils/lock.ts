@@ -1,6 +1,7 @@
 import { locks } from './db'
 
 export async function lock(name: string): Promise<boolean> {
+  if (process.env.IS_OFFLINE) return true
   try {
     await locks
       .put({ id: name, ttl: Math.floor(Date.now() / 1000) + 60 })
