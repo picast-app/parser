@@ -7,6 +7,7 @@ import { Headers } from '~/utils/http'
 import * as format from '~/parser/format'
 import * as db from '~/utils/db'
 import cyrpto from 'crypto'
+import { UpdateTime, filterTime } from '~/utils/upTimes'
 
 export const handler = wrap(async event => {
   logger.info(
@@ -18,9 +19,17 @@ export const handler = wrap(async event => {
   const headers = new Headers(event.headers)
   verifySignature(record.secret, headers.get('X-Hub-Signature'), event.body)
 
+  const times: UpdateTime = {
+    lastRequested: new Date(),
+    lastChecked: new Date(headers.get('date')),
+    lastModified: new Date(headers.get('last-modified') ?? Date.now()),
+  }
+
   const [data, parserMeta] = await Promise.all([
-    gql.parse(storePartial(event.body)),
-    db.parser.get(`${event.pathParameters.id}#parser`),
+    gql.parse(storePartial(event.body, headers)),
+    db.parser
+      .update(`${event.pathParameters.id}#parser`, filterTime(times))
+      .returning('OLD'),
   ])
   if (!parserMeta) throw Error(`unknown podcast ${event.pathParameters.id}`)
 

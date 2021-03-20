@@ -6,6 +6,7 @@ import * as art from './image'
 import * as page from './pagination'
 import * as mutex from '~/utils/lock'
 import websub from '~/websub/discovered'
+import { UpdateTime, filterTime } from '~/utils/upTimes'
 
 export async function parse({ id, feed }: { id: string; feed?: string }) {
   if (!id || !feed) throw Error('must provide podcast id & feed')
@@ -14,17 +15,30 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
     return
   }
 
+  const times: UpdateTime = {
+    lastRequested: new Date(),
+  }
+
   logger.info('parse', { id, feed })
-  const [{ crc }, existing] = await Promise.all([
+  const [{ crc, headers }, existing] = await Promise.all([
     fetchFeed(feed, false),
     db.parser.get(`${id}#parser`),
   ])
 
+  logger.info('header:', headers.get('last-modified'))
+
+  times.lastChecked = new Date(headers.get('date'))
+
   if (existing?.crc === crc && !process.env.IS_OFFLINE) {
-    await mutex.unlock(id)
+    await Promise.all([
+      mutex.unlock(id),
+      db.parser.update(`${id}#parser`, filterTime(times)),
+    ])
     logger.info('skip parse (crc matches)')
     return
   }
+
+  times.lastModified = new Date(headers.get('last-modified'))
 
   const data = await gql.parse(feed)
   data.id = id
@@ -57,7 +71,7 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
     await storeParserMeta(
       data,
       added.map(({ eId }) => eId),
-      { remove: removed }
+      { remove: removed, times }
     )
   )
 
@@ -151,8 +165,14 @@ async function storeParserMeta(
   {
     record = `${data.id}#parser`,
     firstPage = true,
+    times,
     ...opts
-  }: { record?: string; remove?: string[]; firstPage?: boolean } = {}
+  }: {
+    record?: string
+    remove?: string[]
+    firstPage?: boolean
+    times?: UpdateTime
+  } = {}
 ) {
   logger.info(`store parser meta`, { record, firstPage })
   try {
@@ -165,6 +185,7 @@ async function storeParserMeta(
               crc: data.crc,
               lastParsed: Date.now(),
               ...(data.hub && { websub: { hub: data.hub, self: data.self } }),
+              ...(firstPage && filterTime(times)),
             }
           : undefined
       )
