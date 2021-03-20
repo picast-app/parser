@@ -1,5 +1,5 @@
-import { server } from '~/gql/apollo'
-import PARSE_QUERY from '~/gql/parseQuery.gql'
+import { server } from '~/core/server'
+import PARSE_QUERY from './parseQuery.gql'
 import { print } from 'graphql'
 
 export async function parse(feed: string) {

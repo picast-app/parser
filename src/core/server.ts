@@ -1,6 +1,7 @@
+import '~/utils/logger'
 import { ApolloServer, makeExecutableSchema } from 'apollo-server-lambda'
-import * as resolvers from '~/resolvers'
-import * as typeDefs from '~/schema'
+import * as resolvers from '~/core/resolvers'
+import * as typeDefs from '~/core/schema'
 import { Headers } from '~/utils/http'
 
 export const requests = {}
@@ -30,7 +31,7 @@ export const server = new ApolloServer({
 
 const _handler = server.createHandler()
 
-export const handler = (event, ...args) => {
+export const handler = (event: any, ...args: any[]) => {
   if (
     new Headers(event.headers).get('auth') !== process.env.PARSER_AUTH &&
     !process.env.IS_OFFLINE

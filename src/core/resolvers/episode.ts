@@ -1,4 +1,4 @@
-import { buildSelector } from '~/utils/selector'
+import { buildSelector } from '~/core/selector'
 
 const $ = buildSelector((episode: Element) => episode)
 
