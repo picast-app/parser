@@ -1,4 +1,4 @@
-import { buildSelector } from '~/utils/selector'
+import { buildSelector } from '~/core/xml/selector'
 import * as pi from '~/utils/podcastindex'
 
 type Parent = {

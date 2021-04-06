@@ -1,0 +1,23 @@
+query FullQuery($feed: String, $raw: String) {
+  podcast(feed: $feed, raw: $raw) {
+    title
+    crc
+    author
+    description
+    subtitle
+    artwork
+    generator
+    nextPage
+    lastPage
+    hub
+    self
+    episodes {
+      id
+      url
+      published
+      title
+      shownotes
+      duration
+    }
+  }
+}

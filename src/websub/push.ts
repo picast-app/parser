@@ -1,6 +1,5 @@
 import '~/utils/logger'
-import * as gql from '~/parser/gql'
-import { storePartial } from '~/utils/fetchFeed'
+import * as core from '~/parser/core'
 import { pickKeys as pick } from '~/utils/object'
 import { wrap } from './util'
 import { Headers } from '~/utils/http'
@@ -30,7 +29,7 @@ export const handler = wrap(async event => {
   }
 
   const [data, parserMeta] = await Promise.all([
-    gql.parse(storePartial(event.body, headers)!),
+    core.invoke(event.body),
     db.parser
       .update(`${event.pathParameters.id}#parser`, filterTime(times))
       .returning('OLD'),

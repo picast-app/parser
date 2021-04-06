@@ -1,4 +1,4 @@
-import { query } from '~/utils/dom'
+import { query } from './dom'
 import striptags from 'striptags'
 
 export const buildSelector = <T = Element>(

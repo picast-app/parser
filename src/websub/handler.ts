@@ -31,7 +31,11 @@ export async function dbUpdate(event: DynamoDBStreamEvent) {
           logger.warn('failed to setup or confirm subscription')
           await cleanup(item.podcast)
         } else {
-          await subscribe(item)
+          try {
+            await subscribe(item)
+          } catch (error) {
+            logger.error('failed to renew subscription', { error })
+          }
         }
       }
     }
@@ -46,11 +50,14 @@ async function subscribe(
   record: DBRecord<typeof db['websub']>,
   resetAttempts = false
 ) {
-  logger.info('subscribe', record)
+  logger.info('subscribe', { record })
+  if (!record.hub) return logger.error('hub missing')
 
   const secret = crypto.randomBytes(20).toString('hex')
   let q = db.websub.update(record.podcast, {
     status: 'requested',
+    hub: record.hub,
+    topic: record.topic,
     secret,
     requested: Date.now(),
     ttl: Math.floor(Date.now() / 1000) + 60 ** 2,

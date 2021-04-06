@@ -1,15 +1,12 @@
 import axios from 'axios'
-import { JSDOM } from 'jsdom'
 import crc32 from 'crc/crc32'
 import { Headers } from './http'
 import type { DBRecord } from 'ddbjs'
 import type { parser } from '~/utils/db'
 
 type Parsed = {
-  raw?: string
+  raw: string | null
   crc?: string
-  channel?: Element
-  episodes?: Element[]
   headers: Headers
 }
 
@@ -35,15 +32,13 @@ export default async function fetchFeed(
         Object.entries(cacheConds).filter(([, v]) => v)
       )
     }
-    cache[url] = fetch(url, cacheConds).then(res => parseFeed(...res))
+    cache[url] = fetch(url, cacheConds).then(([raw, headers]) => ({
+      raw,
+      headers,
+      ...(raw && { crc: crc32(raw).toString(16) }),
+    }))
   }
   return cache[url]
-}
-
-export function storePartial(raw: string, headers: Headers) {
-  const parsed = parseFeed(raw, headers)
-  cache[parsed.crc!] ??= Promise.resolve(parsed)
-  return parsed.crc
 }
 
 const fetch = async (
@@ -60,28 +55,5 @@ const fetch = async (
     if (e.response?.status !== 304) throw e
     logger.info('304: Not Modified')
     return [null, new Headers(e.response.headers)]
-  }
-}
-
-const parseFeed = (raw: string | null, headers: Headers): Parsed => {
-  if (!raw) return { headers }
-  const { document } = new JSDOM(raw, { contentType: 'text/xml' }).window
-
-  const channel =
-    document.querySelector('channel') ?? document.querySelector('feed')
-  if (!channel) throw Error("feed doesn't contain a channel or feed element")
-
-  const episodes = [
-    ...channel.querySelectorAll(':scope > item'),
-    ...channel.querySelectorAll(':scope > entry'),
-  ]
-  episodes.forEach(node => node.remove())
-
-  return {
-    raw,
-    crc: crc32(raw).toString(16),
-    channel,
-    episodes,
-    headers,
   }
 }
