@@ -60,5 +60,5 @@ function httpHandler(
 const directHandler = async (event: any) =>
   await server.executeOperation({
     query: print(QUERY),
-    variables: { raw: event.content },
+    variables: { raw: event.raw },
   })

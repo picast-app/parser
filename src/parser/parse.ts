@@ -1,5 +1,5 @@
 import fetchFeed from '~/utils/fetchFeed'
-import * as gql from './gql'
+import * as core from './core'
 import * as db from '~/utils/db'
 import * as format from './format'
 import * as art from './image'
@@ -22,7 +22,7 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
   }
   const existing = await db.parser.get(`${id}#parser`)
 
-  const { crc, headers } = await fetchFeed(feed, false, existing)
+  const { crc, headers, raw } = await fetchFeed(feed, false, existing)
 
   times.lastChecked = new Date(headers.get('date'))
   if (crc) times.etag = headers.get('etag')
@@ -32,7 +32,7 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
     lastModified: headers.has('last-modified'),
   }
 
-  if (!crc || (existing?.crc === crc && !process.env.IS_OFFLINE)) {
+  if (!raw || (existing?.crc === crc && !process.env.IS_OFFLINE)) {
     await Promise.allSettled([
       mutex.unlock(id),
       db.parser.update(`${id}#parser`, {
@@ -46,7 +46,7 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
 
   times.lastModified = new Date(headers.get('last-modified'))
 
-  const data = await gql.parse(feed)
+  const data = await core.invoke(raw)
   data.id = id
   data.feed = feed
   data.crc = crc
@@ -104,10 +104,12 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
 export async function parsePage(id: string, pageUrl: string, incr: boolean) {
   if (!id || !pageUrl) throw Error('must provide podcast id & feed')
   logger.info(`parse ${id} ${incr ? 'incremental' : 'batch'} page ${pageUrl}`)
+  const { raw } = await fetchFeed(pageUrl)
+  if (!raw) throw Error('no content received')
 
   try {
     const [data, existing] = await Promise.all([
-      gql.parse(pageUrl),
+      core.invoke(raw),
       db.parser.get(`${id}#parser`),
     ])
 
