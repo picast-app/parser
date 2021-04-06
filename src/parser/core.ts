@@ -12,7 +12,7 @@ export const invoke = async (raw: string) => {
     .promise()
   if (!Payload) throw Error('no result')
   const { errors, data } = JSON.parse(Payload.toString())
-  if (!errors?.length || !data)
+  if (errors?.length || !data)
     logger.error('core invocation failed', { errors, data })
   return data?.podcast
 }
