@@ -4,6 +4,7 @@ import crc32 from 'crc/crc32'
 import { Headers } from './http'
 import type { DBRecord } from 'ddbjs'
 import type { parser } from '~/utils/db'
+import { performance } from 'perf_hooks'
 
 type Parsed = {
   raw?: string
@@ -65,6 +66,7 @@ const fetch = async (
 
 const parseFeed = (raw: string | null, headers: Headers): Parsed => {
   if (!raw) return { headers }
+  const t0 = performance.now()
   const { document } = new JSDOM(raw, { contentType: 'text/xml' }).window
 
   const channel =
@@ -76,6 +78,8 @@ const parseFeed = (raw: string | null, headers: Headers): Parsed => {
     ...channel.querySelectorAll(':scope > entry'),
   ]
   episodes.forEach(node => node.remove())
+
+  logger.info(`parsed in ${Math.round(performance.now() - t0)}ms`)
 
   return {
     raw,

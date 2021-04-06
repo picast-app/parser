@@ -1,3 +1,5 @@
-import fetchFeed from '~/utils/fetchFeed'
+import parse from '~/core/xml/parse'
+import fetch from '~/utils/fetchFeed'
 
-export const podcast = async (_, { feed }) => await fetchFeed(feed)
+export const podcast = async (_, { feed, raw }) =>
+  raw ? parse(raw) : await fetch(feed)

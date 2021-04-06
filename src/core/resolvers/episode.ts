@@ -1,4 +1,4 @@
-import { buildSelector } from '~/core/selector'
+import { buildSelector } from '~/core/xml/selector'
 
 const $ = buildSelector((episode: Element) => episode)
 

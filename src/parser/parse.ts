@@ -7,6 +7,7 @@ import * as page from './pagination'
 import * as mutex from '~/utils/lock'
 import websub from '~/websub/discovered'
 import { UpdateTime, filterTime } from '~/utils/upTimes'
+import { sns } from '~/utils/aws'
 import type { DBRecord } from 'ddbjs'
 
 export async function parse({ id, feed }: { id: string; feed?: string }) {
@@ -88,7 +89,12 @@ export async function parse({ id, feed }: { id: string; feed?: string }) {
   )
   await storeEpisodes(added)
 
-  if (pagination.type === 'none' || hasKnown) return await mutex.unlock(id)
+  if (pagination.type === 'none' || hasKnown) {
+    await mutex.unlock(id)
+    if (!existing) await notifyTotal(id, added.length)
+    return
+  }
+
   await page.schedule(
     id,
     ...(pagination.type === 'incr' ? [pagination.next] : pagination.pages)
@@ -138,14 +144,14 @@ async function finalize(id: string) {
 
   logger.info(`${episodes.length} episodes (${episodeCheck})`)
   await db.podcasts.update(id, { episodeCheck, episodeCount: episodes.length })
-
   await mutex.unlock(id)
+  await notifyTotal(id, episodes.length)
 }
 
 async function storeMeta(data: any, eps?: { deltaEps: number }) {
   logger.info(`store meta ${data.id} (${data.title})`)
   const meta = format.meta(data)
-  if (process.env.IS_OFFLINE) meta.covers = await art.fetch(data.id)
+  if (process.env.IS_OFFLINE) Object.assign(meta, await art.fetch(data.id))
   logger.info(meta)
   let query = db.podcasts.update(data.id, meta).returning('OLD')
   if (eps) query = query.add({ episodeCount: eps.deltaEps })
@@ -218,4 +224,14 @@ async function deleteEpisodes(podcast: string, episodes: string[]) {
   await db.episodes.batchDelete(
     ...episodes.map(id => [podcast, id] as [string, string])
   )
+}
+
+async function notifyTotal(podcast: string, total: number) {
+  if (process.env.IS_OFFLINE) return
+  await sns
+    .publish({
+      Message: JSON.stringify({ type: 'HAS_TOTAL', podcast, total }),
+      TopicArn: process.env.NOTIFY_SNS,
+    })
+    .promise()
 }

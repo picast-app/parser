@@ -1,5 +1,5 @@
 import { server } from '~/core/server'
-import PARSE_QUERY from './parseQuery.gql'
+import PARSE_QUERY from '~/core/schema/fullQuery.gql'
 import { print } from 'graphql'
 
 export async function parse(feed: string) {
