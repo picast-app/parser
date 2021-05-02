@@ -23,6 +23,11 @@ export async function dbUpdate(event: DynamoDBStreamEvent) {
       const item: DBRecord<typeof db['websub']> = DynamoDB.Converter.unmarshall(
         record.dynamodb!.OldImage!
       ) as any
+      const podcast = await db.podcasts.get(item.podcast)
+      if (!podcast) {
+        logger.info(`skip ${item.podcast} (removed)`)
+        continue
+      }
       if (item.status === 'active') {
         logger.info('renew subscription')
         await subscribe(item, true)
