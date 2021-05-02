@@ -25,5 +25,7 @@ export const guidSha1 = (id: string, length = 6) => {
   return shasum.digest('hex').slice(0, length)
 }
 
-export const episodeSK = (id: string, published = 0) =>
-  ('0'.repeat(5) + published.toString(36)).slice(-6) + id
+export const episodeSK = (id: string, published: Date) =>
+  ('0'.repeat(5) + Math.floor(published.getTime() / 1000).toString(36)).slice(
+    -6
+  ) + id

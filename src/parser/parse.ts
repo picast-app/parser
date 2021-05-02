@@ -198,7 +198,7 @@ async function storeParserMeta(
           ? {
               feed: data.feed,
               crc: data.crc,
-              lastParsed: Date.now(),
+              lastParsed: new Date().toISOString(),
               ...(data.hub && { websub: { hub: data.hub, self: data.self } }),
               ...(firstPage && times && filterTime(times)),
               ...(cacheHeaders && { cacheHeaders }),

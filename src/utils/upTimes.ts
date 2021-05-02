@@ -25,7 +25,7 @@ export const filterTime = (
           ? v
           : isNaN((v as Date).getTime())
           ? undefined
-          : (v as Date).toUTCString(),
+          : (v as Date).toISOString(),
       ])
       .filter(([, v]) => v)
   )

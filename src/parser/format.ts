@@ -3,11 +3,11 @@ import { episodeSK, vowelShift, guidSha1 } from '~/utils/id'
 import { episodes as eps, meta as dbMeta } from '@picast-app/db'
 
 export const episodes = (podcast: any, firstPass = false, pId = podcast.id) =>
-  podcast.episodes.map(({ id: guid, published = 0, ...rest }) => ({
+  podcast.episodes.map(({ id: guid, published, ...rest }) => ({
     pId,
     eId: episodeSK(
       vowelShift(parseInt(guidSha1(guid), 16).toString(36)),
-      published
+      new Date(published)
     ),
     guid,
     published,

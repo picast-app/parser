@@ -38,6 +38,7 @@ provider:
 functions:
   graph:
     handler: src/core/server.handler
+    memorySize: 300
     events:
       - http:
           path: /graphql
@@ -48,7 +49,7 @@ functions:
 
   parsePodcast:
     handler: src/parser/api.parsePodcast
-    memorySize: 512
+    memorySize: 128
     timeout: 30
     events:
       - sns:
@@ -63,6 +64,7 @@ functions:
 
   websubDB:
     handler: src/websub/handler.dbUpdate
+    memorySize: 128
     events:
       - stream:
           type: dynamodb
@@ -70,6 +72,7 @@ functions:
 
   websubChallenge:
     handler: src/websub/handler.challenge
+    memorySize: 128
     events:
       - http:
           path: /{id}
@@ -77,6 +80,7 @@ functions:
 
   websubPush:
     handler: src/websub/push.handler
+    memorySize: 128
     events:
       - http:
           path: /{id}
