@@ -39,6 +39,7 @@ functions:
   graph:
     handler: src/core/server.handler
     memorySize: 300
+    timeout: 60
     events:
       - http:
           path: /graphql
@@ -50,13 +51,14 @@ functions:
   parsePodcast:
     handler: src/parser/api.parsePodcast
     memorySize: 128
-    timeout: 30
+    timeout: 60
     events:
       - sns:
           arn: ${ssm:/echo/sns/parser/arn}
 
   httpWrap:
     handler: src/parser/api.httpWrap
+    timeout: 30
     events:
       - http:
           path: /parse
