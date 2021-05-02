@@ -26,7 +26,6 @@ export const meta = (data: any): DBRecord<typeof db.podcasts> => {
     'title',
     'author',
     'description',
-    'subtitle',
     'artwork',
     'crc',
     'episodeCheck'

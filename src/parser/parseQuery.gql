@@ -4,7 +4,6 @@ query ParseQuery($feed: String!) {
     crc
     author
     description
-    subtitle
     artwork
     generator
     nextPage
