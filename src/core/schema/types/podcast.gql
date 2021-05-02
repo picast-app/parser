@@ -2,7 +2,6 @@ type Podcast {
   title: String
   author: String
   description: String
-  subtitle: String
   artwork: String
   episodes(limit: Int): [Episode!]!
   crc: ID

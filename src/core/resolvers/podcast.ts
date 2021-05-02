@@ -23,8 +23,6 @@ export default {
   description:  $`> description
                   > itunes:summary`.strip,
 
-  subtitle:     $`> subtitle`.strip,
-
   artwork:      $`> image url
                   > itunes:image.href`,
 

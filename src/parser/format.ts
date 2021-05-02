@@ -1,6 +1,8 @@
 import * as obj from '~/utils/object'
 import { episodeSK, vowelShift, guidSha1 } from '~/utils/id'
 import { episodes as eps, meta as dbMeta } from '@picast-app/db'
+import type * as db from '~/utils/db'
+import type { DBRecord } from 'ddbjs'
 
 export const episodes = (podcast: any, firstPass = false, pId = podcast.id) =>
   podcast.episodes.map(({ id: guid, published, ...rest }) => ({
@@ -17,7 +19,7 @@ export const episodes = (podcast: any, firstPass = false, pId = podcast.id) =>
 
 export const episodeCheck = (episodes: string[]) => eps.hashIds(episodes)
 
-export const meta = (data: any) => {
+export const meta = (data: any): DBRecord<typeof db.podcasts> => {
   const meta: any = obj.pickKeys(
     data,
     'feed',
@@ -29,5 +31,5 @@ export const meta = (data: any) => {
     'crc',
     'episodeCheck'
   )
-  return { ...meta, check: dbMeta.check(meta) }
+  return { ...meta, metaCheck: dbMeta.check(meta) }
 }

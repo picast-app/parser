@@ -158,7 +158,8 @@ async function storeMeta(data: any, eps?: { deltaEps: number }) {
   let query = db.podcasts.update(data.id, meta).returning('OLD')
   if (eps) query = query.add({ episodeCount: eps.deltaEps })
   const old = await query
-  if (old?.artwork !== meta.artwork) await art.resize(data.id, meta.artwork)
+  if (meta.artwork && old?.artwork !== meta.artwork)
+    await art.resize(data.id, meta.artwork)
 }
 
 async function storeEpisodes(episodes: any[]) {
