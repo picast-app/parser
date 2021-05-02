@@ -38,15 +38,8 @@ provider:
 functions:
   graph:
     handler: src/core/server.handler
-    memorySize: 300
+    memorySize: 512
     timeout: 60
-    events:
-      - http:
-          path: /graphql
-          method: get
-      - http:
-          path: /graphql
-          method: post
 
   parsePodcast:
     handler: src/parser/api.parsePodcast

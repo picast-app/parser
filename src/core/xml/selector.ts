@@ -10,7 +10,7 @@ export const buildSelector = <T = Element>(
   return Object.defineProperties(exec, {
     time: {
       get() {
-        mod = v => (new Date(v).getTime() / 1000) | 0
+        mod = v => new Date(v).toISOString()
         return this
       },
     },
